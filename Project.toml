@@ -1,0 +1,10 @@
+name = "RadiationDetectorDSP"
+uuid = "afd6e06f-c550-5763-af36-7391d39e46ec"
+
+[deps]
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
