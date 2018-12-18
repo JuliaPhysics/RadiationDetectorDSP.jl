@@ -2,6 +2,7 @@ name = "RadiationDetectorDSP"
 uuid = "afd6e06f-c550-5763-af36-7391d39e46ec"
 
 [deps]
+RadiationDetectorSignals = "bf2c0563-65cf-5db2-a620-ceb7de82658c"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

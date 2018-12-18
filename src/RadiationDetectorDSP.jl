@@ -4,6 +4,8 @@ __precompile__(true)
 
 module RadiationDetectorDSP
 
+using RadiationDetectorSignals
+
 # package code goes here
 
 end # module
