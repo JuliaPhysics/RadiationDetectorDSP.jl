@@ -31,6 +31,7 @@ install:
 
 build_script:
   - echo "%JL_BUILD_SCRIPT%"
+  - C:\julia\bin\julia "install_nonreg_deps.jl"
   - C:\julia\bin\julia -e "%JL_BUILD_SCRIPT%"
 
 test_script:

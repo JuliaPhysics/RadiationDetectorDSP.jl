@@ -20,6 +20,9 @@ julia:
 notifications:
   email: false
 
+before_script:
+  - julia "install_nonreg_deps.jl"
+
 after_success:
   # push coverage results to Codecov
   - julia -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
@@ -31,6 +34,8 @@ jobs:
     - stage: "Documentation"
       julia: 1.0
       os: linux
+      before_script:
+        - julia --project=docs/ "install_nonreg_deps.jl"
       script:
         - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
         - julia --project=docs/ docs/make.jl
