@@ -18,9 +18,9 @@ makedocs(
     ],
     doctest = ("fixdoctests" in ARGS) ? :fix : true,
     html_prettyurls = !("local" in ARGS),
-    html_canonical = "https://JuliaHEP.github.io/RadiationDetectorDSP.jl/stable/",
+    html_canonical = "https://JuliaPhysics.github.io/RadiationDetectorDSP.jl/stable/",
 )
 
 deploydocs(
-    repo = "github.com/JuliaHEP/RadiationDetectorDSP.jl.git"
+    repo = "github.com/JuliaPhysics/RadiationDetectorDSP.jl.git"
 )
