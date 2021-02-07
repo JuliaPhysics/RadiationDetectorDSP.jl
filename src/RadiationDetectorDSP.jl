@@ -19,7 +19,6 @@ using StaticArrays
 using Statistics
 using StatsBase
 using TypedTables
-using UnsafeArrays
 
 # package code goes here
 
