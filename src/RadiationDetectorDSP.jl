@@ -21,8 +21,10 @@ using Statistics
 using StatsBase
 using TypedTables
 
+include("util.jl")
 include("samples.jl")
 include("filters.jl")
+include("trapezoidal_filter.jl")
 include("generators.jl")
 
 end # module
