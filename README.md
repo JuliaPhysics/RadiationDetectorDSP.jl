@@ -11,3 +11,5 @@
 
 * [Documentation for stable version](https://JuliaPhysics.github.io/RadiationDetectorDSP.jl/stable)
 * [Documentation for development version](https://JuliaPhysics.github.io/RadiationDetectorDSP.jl/dev)
+
+This package provides DSP algorithms for the output signal waveforms of radiation detectors (e.g. semiconductor- or scintillator-based systems).
