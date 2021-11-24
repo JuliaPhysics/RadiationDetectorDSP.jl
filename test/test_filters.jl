@@ -6,17 +6,13 @@ using Test
 using Random, LinearAlgebra, Statistics
 using DSP
 
-using RadiationDetectorDSP: rc_filter, cr_filter, inv_cr_filter, crmod_filter,
-    inv_crmod_filter, integrator_filter, differentiator_filter,
-    integrator_cr_filter, integrator_crmod_filter, simple_csa_response_filter
-
-# Runs Biquad filter in Direct Form 1, for comparison (DSP.jl uses
-# Transposed Direct Form 2):
-df1_filt(f::Biquad, input::Vector{<:Real}) =
-    filt([f.b0, f.b1, f.b2], [one(f.a1), f.a1, f.a2], input)
-
 
 @testset "Filters" begin
+    # Runs Biquad filter in Direct Form 1, for comparison (DSP.jl uses
+    # Transposed Direct Form 2):
+    df1_filt(f::Biquad, input::Vector{<:Real}) =
+        filt([f.b0, f.b1, f.b2], [one(f.a1), f.a1, f.a2], input)
+
     plot(args...) = nothing
     plot!(args...) = nothing
     hline!(args...) = nothing
