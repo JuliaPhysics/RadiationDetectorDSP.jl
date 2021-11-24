@@ -15,6 +15,7 @@ using Parameters
 using RadiationDetectorSignals
 using Random
 using RecipesBase
+using SIMD
 using StaticArrays
 using Statistics
 using StatsBase
