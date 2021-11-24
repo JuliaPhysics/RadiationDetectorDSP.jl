@@ -7,6 +7,14 @@
 using Documenter
 using RadiationDetectorDSP
 
+# Doctest setup
+DocMeta.setdocmeta!(
+    RadiationDetectorDSP,
+    :DocTestSetup,
+    :(using RadiationDetectorDSP);
+    recursive=true,
+)
+
 makedocs(
     sitename = "RadiationDetectorDSP",
     modules = [RadiationDetectorDSP],
