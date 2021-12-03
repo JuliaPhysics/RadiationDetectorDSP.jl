@@ -4,22 +4,36 @@ __precompile__(true)
 
 module RadiationDetectorDSP
 
+using LinearAlgebra
+using Random
+using Statistics
+
+using Adapt
 using ArgCheck
 using ArraysOfArrays
+using CompositionsBase
 using Distributions
+using DocStringExtensions
 using DSP
 using ElasticArrays
-using LinearAlgebra
-using ParallelProcessingTools
+using FFTW
+using FillArrays
+using GPUArrays
+using KernelAbstractions
+using InverseFunctions
+using LinearMaps
 using Parameters
 using RadiationDetectorSignals
-using Random
 using RecipesBase
 using SIMD
 using StaticArrays
-using Statistics
 using StatsBase
 using TypedTables
+using UnPack
+using Unitful
+
+import ChainRulesCore
+
 
 include("util.jl")
 include("samples.jl")
