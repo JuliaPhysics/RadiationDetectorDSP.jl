@@ -76,7 +76,7 @@ export StepGenerator
 
 
 """
-    struct IIDNoiseGenerator <: AbstractRadNonlinearFilter
+    struct WhiteNoiseGenerator <: AbstractRadNonlinearFilter
 
 Add IID random noise to the input.
 
@@ -90,17 +90,13 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-@with_kw struct IIDNoiseGenerator{
-    D <: Distribution{Univariate,Continuous}
-} <: AbstractRadNonlinearFilter
-    "noise distribution"
-    distribution::D = Normal()
+@with_kw struct WhiteNoiseGenerator <: AbstractRadNonlinearFilter
+    "noise level"
+    level::Float64 = 1.0
 end
-export IIDNoiseGenerator
+export WhiteNoiseGenerator
 
-#!!!!! ToDo: Implement IIDNoiseGenerator
-
-# ToDo: Add triangular distribution for dithering.
+#!!!!! ToDo: Implement WhiteNoiseGenerator
 
 
 """
@@ -118,12 +114,15 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-@with_kw struct ShapedNoiseGenerator{
-    F
-} <: AbstractRadNonlinearFilter
+@with_kw struct ShapedNoiseGenerator{F} <: AbstractRadNonlinearFilter
     "spectrum transfer function"
     specfunc::F = inv
+    "noise level"
+    level::Float64 = 1.0
 end
 export ShapedNoiseGenerator
 
 #!!!!! ToDo: Implement ShapedNoiseGenerator
+
+
+# ToDo: Add triangular noise generator for dithering.
