@@ -101,3 +101,29 @@ export IIDNoiseGenerator
 #!!!!! ToDo: Implement IIDNoiseGenerator
 
 # ToDo: Add triangular distribution for dithering.
+
+
+"""
+    struct ShapedNoiseGenerator <: AbstractRadNonlinearFilter
+
+Add shaped noise to the input.
+
+Uses a deterministic RNG initialized from hash of the input.
+
+Constructors:
+
+* ```$(FUNCTIONNAME)(; fields...)```
+
+Fields:
+
+$(TYPEDFIELDS)
+"""
+@with_kw struct ShapedNoiseGenerator{
+    F
+} <: AbstractRadNonlinearFilter
+    "spectrum transfer function"
+    specfunc::F = inv
+end
+export ShapedNoiseGenerator
+
+#!!!!! ToDo: Implement ShapedNoiseGenerator
