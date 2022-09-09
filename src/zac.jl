@@ -1,16 +1,11 @@
-export zac_filter!, zac
+export zac_filter_coefficients
 
 """
-    zac_filter(s, τₛ, A, L, FT)
+    zac_filter_coefficients(s, τₛ, A, L, FT)
 
-Apply the ZAC filter (Eur. Phys. J. C (2015) 75:255) to the array s and 
-save the result in s.
-
+ZAC filter function as defined in Eq. (7) in [Eur. Phys. J. C (2015) 75:255]
 """
-zac_filter!(s::AbstractArray{T}, τₛ::T, A::T, L::T, FT::T) = 
-    s .= zac.(s, τₛ, A, L, FT)
-
-@inline zac(t::T, τₛ::T, A::T, L::T, FT::T) where T = begin
+@inline zac_filter_coefficients(t, τₛ, A, L, FT) = begin
     if 0 <= t < L
         sinh(t / τₛ) + A*t*(t - L)
     elseif L <= t < L + FT
