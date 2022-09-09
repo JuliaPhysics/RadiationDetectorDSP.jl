@@ -26,6 +26,6 @@ include("samples.jl")
 include("filters.jl")
 include("trapezoidal_filter.jl")
 include("generators.jl")
-include("zac")
+include("zac.jl")
 
 end # module
