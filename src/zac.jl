@@ -15,38 +15,41 @@ ZAC filter function as defined in Eq. (7) in [Eur. Phys. J. C (2015) 75:255]
     end
 end
 
-"""
-
-    ZACfilter similar to cpp script
-"""
 @inline tons(u, dt) = ceil(u / dt) |> Int
 
-create_zac_filter(Nₜ, FTₜ, τₜ, Δt) = begin
-    # convert parameters to integers respecting nano seconds resolution
+"""
+    create_zac_filter(Nₜ, FTₜ, τₜ, Δt)
+
+create the zac filter according to Eur. Phys. J. C (2015) 75:255], where 
+Nₜ is the length of the filter, FTₜ the length of the flat top, τₜ the the 
+exponential decay factor and Δt the sampling time
+"""
+function create_zac_filter(Nₜ, FTₜ, τₜ, Δt)
+    # convert parameters to integers respecting whatever resolution is 
+    # given by Δt
     N, τₛ, FT = tons.((Nₜ, τₜ, FTₜ), Δt)
 
     # define length of filter
-    L = ((N - FT) % 2 == 0) ? L = (N - FT)÷2 : (FT += 1; true) && (N - FT)÷2
+    L = ((N - FT) % 2 == 0) ? (N - FT)÷2 : (N - (FT+=1))÷2
+    @debug "Number of bins: $L"
     CUSP = Array{Float64, 1}(undef, N)
     Poly = zeros(Int, N)
 
-    # normalization constant, such that the ZAC filter is equal to one at the 
-    # center
-    C = 1/sinh(L/τₛ)
-
     # build the cusp filter (sinh part) and polynomial part
     for i in 1:L
-        y = sinh(i/τₛ)*C
-        CUSP[i] = CUSP[N-i+1] = y
-        Poly[i] = Poly[N - i + 1] = i*(i - L)
+        CUSP[i] = CUSP[N-i+1] = sinh(i/τₛ)
+        Poly[i] = Poly[N-i+1] = i*(i - L)
     end
-    for i in L+1:L+FT
-        CUSP[i] = 1.
+    # build the flat top part
+    C = sinh(L/τₛ)
+    for i in 1:FT
+        CUSP[L+i] = C
     end
 
     ∫Poly = sum(Poly)
     ∫CUSP = sum(CUSP)
-
-    # build the ZAC filter
-    return CUSP .+ (Poly .* (-∫CUSP/∫Poly))
+    @debug "∫Poly = $(∫Poly)"
+    @debug "∫CUSP = $(∫CUSP)"
+    # build the normalized ZAC filter
+    CUSP .+ (Poly .* (-∫CUSP/∫Poly))
 end
