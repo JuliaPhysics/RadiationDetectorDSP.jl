@@ -1,25 +1,58 @@
-export zac_filter_coefficients, create_zac_filter, 
-       zac_diff_filter_coefficients
-
-@inline _A(L, FT, τₛ) = 6/L^3 * (τₛ*(cosh(L/τₛ) - 1) + sinh(L/τₛ)*FT/2)
+export zac_current_filter_integral, zac_current_filter_shape,
+       zac_charge_filter_coeffs
 
 """
-    zac_filter_coefficients(s, τₛ, L, FT)
+    zac_current_filter_integral(L, FT, τₛ)
+
+compute the integral of the unnormalised zac filter using its analytical
+expression, where L is the length of the polynomial part, FT the length 
+of the flat top part and τₛ the 
+"""
+@inline zac_current_filter_integral(L, FT, τₛ) = 
+    6/L^3 * (τₛ*(cosh(L/τₛ) - 1) + sinh(L/τₛ)*FT/2)
+
+"""
+    zac_current_filter_shape(t, τₛ, L, FT, A)
        
-ZAC filter function as defined in Eq. (7) in [Eur. Phys. J. C (2015) 75:255]
+value of zac filter evaluated at `t` for the given set of parameters
+(see Eur. Phys. J. C (2015) 75:255)
 """
-@inline zac_filter_coefficients(t, τₛ, L, FT) = begin
-    if 0 <= t < L
-        sinh(t / τₛ) + _A(L, FT, τₛ)*t*(t - L)
+zac_current_filter_shape(t::T, τₛ::T, L::T, FT::T, A::T
+) where {T<:AbstractFloat} = begin
+    if zero(T) < t < L 
+        sinh(t / τₛ) + A*t*(t - L)
     elseif L <= t <= L + FT
         sinh(L / τₛ)
-    elseif L + FT <= t <= 2L + FT
-        sinh((2L + FT - t)/τₛ) + _A(L, FT, τₛ)*(L + FT - t)*(2L + FT - t)
+    elseif L + FT < t < 2L + FT
+        sinh((2L + FT - t)/τₛ) + A*(L + FT - t)*(2L + FT - t)
     else
-        0
+        zero(T)
     end
 end
 
+"""
+    zac_charge_filter_coeffs(FT, tau, Δt, L)
+
+return a vector representing the zac filter applicaible on a charge 
+signal.
+"""
+zac_charge_filter_coeffs(FT, tau, Δt, L) = begin
+    T = promote_type(typeof.((FT, tau, Δt, L))...)
+    A = zac_current_filter_integral(L, FT, τₛ)
+    t = zero(T):Δt:L
+    zac_diff = zeros(T, length(t)-1)
+    for i in eachindex(zac_diff)
+        nothing
+    end
+    return zac_diff
+end
+
+"""
+    zac_diff_filter_coefficients(t, Δt, τ, τₛ, L, FT)
+
+filter coefficients equivalent to a ZAC filter convolved with a 
+differential filter. 
+"""
 @inline zac_diff_filter_coefficients(t, Δt, τ, τₛ, L, FT) = begin
     a = exp(-Δt/τ)
     if 0 <= t < L
@@ -28,7 +61,7 @@ end
         + A*((t + Δt)*Δt + (t + Δt - a*t)*(t - L))
     elseif L <= t <= L+FT
         (1-a)*sinh(L/τₛ)
-    elseif L + FT < t <= zd2L + FT
+    elseif L + FT < t <= 2L + FT
         A = _A(L, FT, τₛ)
         t̃ = 2L + FT - t
         -a*(sinh((t̃+Δt)/τₛ) - sinh(t̃/τₛ)/a 
