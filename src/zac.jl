@@ -5,8 +5,8 @@ export zac_current_filter_integral, zac_current_filter_shape,
     zac_current_filter_integral(L, FT, τₛ)
 
 compute the integral of the unnormalised zac filter using its analytical
-expression, where L is the length of the polynomial part, FT the length 
-of the flat top part and τₛ the 
+expression, where `L` is the length of the polynomial part, `FT` the length 
+of the flat top part and `τₛ` the filter shaping time
 """
 @inline zac_current_filter_integral(L, FT, τₛ) = 
     6/L^3 * (τₛ*(cosh(L/τₛ) - 1) + sinh(L/τₛ)*FT/2)
@@ -14,8 +14,8 @@ of the flat top part and τₛ the
 """
     zac_current_filter_shape(t, τₛ, L, FT, A)
        
-value of zac filter evaluated at `t` for the given set of parameters
-(see Eur. Phys. J. C (2015) 75:255)
+value of zac filter evaluated at `t` for the given set of parameters 
+(see `zac_charge_filter_coeffs`)
 """
 zac_current_filter_shape(t::T, τₛ::T, L::T, FT::T, A::T
 ) where {T<:AbstractFloat} = begin
@@ -31,44 +31,26 @@ zac_current_filter_shape(t::T, τₛ::T, L::T, FT::T, A::T
 end
 
 """
-    zac_charge_filter_coeffs(FT, tau, Δt, L)
+    zac_charge_filter_coeffs(FT, τₛ, Δt, T)
 
 return a vector representing the zac filter applicaible on a charge 
-signal.
+signal, where `FT` is the length of the flat top, `τₛ` the filter 
+shaping time, `Δt` the sampling time and `T` the total length of the 
+filter (see Eur. Phys. J. C (2015) 75:255).
 """
-zac_charge_filter_coeffs(FT, tau, Δt, L) = begin
-    T = promote_type(typeof.((FT, tau, Δt, L))...)
+zac_charge_filter_coeffs(FT, τₛ, Δt, T) = begin
+    L = (T - FT) / 2
     A = zac_current_filter_integral(L, FT, τₛ)
-    t = zero(T):Δt:L
-    zac_diff = zeros(T, length(t)-1)
+    FT_t, tau_t, Δt_t, T_t, A_t, L_t  = promote(FT, τₛ, Δt, T, A, L)
+    U = typeof(FT_t)
+    t = Δt_t:Δt_t:(T_t - Δt_t)
+    zac_diff = zeros(U, length(t)-1)
     for i in eachindex(zac_diff)
-        nothing
+        fᵢ = zac_current_filter_shape(t[i], tau_t, L_t, FT_t, A_t)
+        fᵢ₊₁ = zac_current_filter_shape(t[i+1], tau_t, L_t, FT_t, A_t)
+        zac_diff[i] = (fᵢ₊₁ - fᵢ)
     end
     return zac_diff
-end
-
-"""
-    zac_diff_filter_coefficients(t, Δt, τ, τₛ, L, FT)
-
-filter coefficients equivalent to a ZAC filter convolved with a 
-differential filter. 
-"""
-@inline zac_diff_filter_coefficients(t, Δt, τ, τₛ, L, FT) = begin
-    a = exp(-Δt/τ)
-    if 0 <= t < L
-        A = _A(L, FT, τₛ)
-        sinh((t+Δt)/τₛ) - a*sinh(t/τₛ) 
-        + A*((t + Δt)*Δt + (t + Δt - a*t)*(t - L))
-    elseif L <= t <= L+FT
-        (1-a)*sinh(L/τₛ)
-    elseif L + FT < t <= 2L + FT
-        A = _A(L, FT, τₛ)
-        t̃ = 2L + FT - t
-        -a*(sinh((t̃+Δt)/τₛ) - sinh(t̃/τₛ)/a 
-        + A*((t̃ + Δt)*Δt + (t̃ + Δt - t̃/a)*(t̃ - L)))
-    else
-        0
-    end
 end
 
 @inline tons(u, dt) = ceil(u / dt) |> Int
