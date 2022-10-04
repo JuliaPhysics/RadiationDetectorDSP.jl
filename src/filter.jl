@@ -57,7 +57,7 @@ as well as:
 
 Invertible filters also must implement
 
-* `Base.inv(flt::SomeFilter)`
+* `InverseFunctions.inverse(flt::SomeFilter)`
 
 The default methods for
 
@@ -95,13 +95,9 @@ Subtypes of `AbstractRadSigFilterInstance` must implement
 
 * `RadiationDetectorDSP.filterdef(fi::SomeFilterInstance)::AbstractRadSigFilter`
 
-Linear filters (subtypes of `AbstractRadSigFilterInstance{LinearFiltering}`) must implement
-
-* `Base.convert(LinearMaps.LinearMap, fi::SomeFilterInstance)`
-
 Invertible filters may implement
 
-* `Base.inv(fi::SomeFilterInstance)`
+* `InverseFunctions.inverse(fi::SomeFilterInstance)`
 
 If a filter's output time axis can be computed from the input time axis, it
 must implement

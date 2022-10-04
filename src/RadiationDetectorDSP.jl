@@ -21,7 +21,6 @@ using FillArrays
 using GPUArrays
 using KernelAbstractions
 using InverseFunctions
-using LinearMaps
 using Parameters
 using RadiationDetectorSignals
 using RecipesBase
