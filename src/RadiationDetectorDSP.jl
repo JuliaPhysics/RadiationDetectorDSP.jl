@@ -18,6 +18,7 @@ using DSP
 using ElasticArrays
 using FFTW
 using FillArrays
+using FunctionChains
 using GPUArrays
 using KernelAbstractions
 using InverseFunctions
