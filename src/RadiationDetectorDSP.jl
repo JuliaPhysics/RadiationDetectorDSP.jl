@@ -40,6 +40,7 @@ include("samples.jl")
 include("legacy/filters.jl")
 include("legacy/trapezoidal_filter.jl")
 include("legacy/generators.jl")
+include("filter.jl")
 include("zac.jl")
 
 end # module

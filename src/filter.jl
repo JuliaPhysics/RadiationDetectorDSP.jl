@@ -22,7 +22,7 @@ export LinearFiltering
 
 
 """
-    abstract type LinearFiltering <: FilteringType
+    abstract type NonlinearFiltering <: FilteringType
 
 When used as a type parameter value, marks non linear behavior of a filter.
 """
@@ -32,7 +32,7 @@ export NonlinearFiltering
 
 
 """
-    abstract type AbstractRadSigFilter{<:FilteringType}
+    abstract type AbstractRadSigFilter{FT<:FilteringType}
 
 Abstract type for signal filters.
 
@@ -67,12 +67,12 @@ The default methods for
 should not be overloaded for `AbstractRadSigFilter`. Instead, overload these
 methods for the filter instance type of `flt`.
 """
-abstract type AbstractRadSigFilter{<:FilteringType} end
+abstract type AbstractRadSigFilter{FT<:FilteringType} end
 export AbstractRadSigFilter
 
 
 """
-    abstract type AbstractRadSigFilterInstance{<:FilteringType}
+    abstract type AbstractRadSigFilterInstance{FT<:FilteringType}
 
 Abstract type for signal filter instances. Filter instances are specilized to
 a specific length and numerical type of input and output.
@@ -114,7 +114,7 @@ Default methods are implemented for
 The default methods that operate on `RadiationDetectorSignals.RDWaveform`s require
 [`RadiationDetectorDSP.flt_output_time_axis`](@ref).
 """
-abstract type AbstractRadSigFilterInstance{<:FilteringType} end
+abstract type AbstractRadSigFilterInstance{FT<:FilteringType} end
 export AbstractRadSigFilter
 
 
@@ -261,9 +261,9 @@ function flt_output_time_axis end
 
 
 function check_input_compat(fi::AbstractRadSigFilterInstance, input::RDWaveform)
-    @require flt_input_smpltype(fi) == eltype(input)
-    @require flt_input_length(fi) == length(eachindex(input))
-    @require flt_input_dt(fi) == step(input)
+    @argcheck flt_input_smpltype(fi) == eltype(input)
+    @argcheck flt_input_length(fi) == length(eachindex(input))
+    @argcheck flt_input_dt(fi) == step(input)
 end
 
 function create_output(ArrayType::Type{<:AbstractArray}, fi::AbstractRadSigFilterInstance)
@@ -291,7 +291,7 @@ end
 
 
 function rdfilt!(output::RDWaveform, fi::AbstractRadSigFilterInstance, input::RDWaveform)
-    @require output.time == flt_output_time_axis(fi, input.time)
+    @argcheck output.time == flt_output_time_axis(fi, input.time)
     y = rdfilt!(output.value, fi, input.value)
     output
 end
@@ -312,6 +312,7 @@ end
 # ToDo: Custom broadcasting over ArrayOfRDWaveforms
 
 
+#=
 
 struct GenericRadSigFilter{
     F<:Function,
@@ -379,3 +380,5 @@ function fltinstance(
 end
 
 rdfilt!(output::AbstractSamples, flt::GenericRadSigFilter, input::AbstractSamples) = flt.f_apply!(output, input)
+
+=#
