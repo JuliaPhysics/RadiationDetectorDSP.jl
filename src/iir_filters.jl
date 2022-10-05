@@ -2,11 +2,11 @@
 
 
 """
-    abstract type AbstractRadIIRFilter <: AbstractRadLinearFilter
+    abstract type AbstractRadIIRFilter <: AbstractRadSigFilter{LinearFiltering}
 
 Abstract type for IIR filters.
 """
-abstract type AbstractRadIIRFilter <: AbstractRadLinearFilter end
+abstract type AbstractRadIIRFilter <: AbstractRadSigFilter{LinearFiltering} end
 export AbstractRadIIRFilter
 
 
@@ -59,7 +59,7 @@ end
 
 export BiquadFilter
 
-BiquadFilter(b::NTuple(3,T), a::NTuple(2,T)) where {T<:RealQuantity} = BiquadFilter{T}(b..., a...)
+BiquadFilter(b::NTuple{3,T}, a::NTuple{2,T}) where {T<:RealQuantity} = BiquadFilter{T}(b..., a...)
 
 
 function DSP.Biquad{T}(flt::BiquadFilter) where {T<:Real}
