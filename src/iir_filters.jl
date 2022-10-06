@@ -14,7 +14,7 @@ export AbstractRadIIRFilter
 """
     struct BiquadFilter{T<:Real} <: AbstractRadIIRFilter
 
-A biquad filter.
+A [biquad filter](https://en.wikipedia.org/wiki/Digital_biquad_filter).
 
 Constructors:
 
@@ -24,28 +24,31 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-struct BiquadFilter{T<:RealQuantity} <: AbstractRadIIRFilter
-    b0::T
-    b1::T
-    b2::T
+Base.@kwdef struct BiquadFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+    "Coefficients b_0 to b_2"
+    b_012::NTuple{3,T}
 
-    a1::T
-    a2::T
+    "Coefficients a_1 to a_2, a_0 equals one implicitly"
+    a_12::NTuple{2,T}
 end
 
 export BiquadFilter
 
-BiquadFilter(b::NTuple{3,T}, a::NTuple{2,T}) where {T<:RealQuantity} = BiquadFilter{T}(b..., a...)
-
 
 function DSP.Biquad{T}(flt::BiquadFilter) where {T<:Real}
-    DSP.Biquad(T(flt.b0), T(flt.b1), T(flt.b2), T(flt.a1), T(flt.a2))
+    DSP.Biquad(map(T, flt.b_012)..., map(T, flt.a_12)...)
 end
 
 
 # For testing:
-coeffs_b_a(f::BiquadFilter) = (SVec(f.b0, f.b1, f.b2), SVec(one(f.a1), f.a1, f.a2))
-coeffs_b_a(f::DSP.Biquad) = (SVec(f.b0, f.b1, f.b2), SVec(one(f.a1), f.a1, f.a2))
+fltparameters(f::BiquadFilter) = (b_012 = f.b_012, a_12 = f.a_12)
+fltparameters(f::DSP.Biquad) = (b_012 = SVec(f.b0, f.b1, f.b2), a_12 = SVec(one(f.a1), f.a1, f.a2))
+
+
+# inverse:
+# y[i] = b0 * x[i] + b1 * x[i-1] + b2 * x[i-2] - a1 * y[i-1] - a2 * y[i-2]
+# x[i] = 1 * y[i] + a1/b0 * y[i-1] + a2/b0 * y[i-2] - b1/b0 * x[i-1] - b2/b0 * x[i-2]
+
 
 
 
@@ -64,7 +67,7 @@ $(TYPEDFIELDS)
 """
 Base.@kwdef struct RCFilter{T<:RealQuantity} <: AbstractRadIIRFilter
     "RC time constant"
-    rc::Real
+    rc::T
 end
 
 export RCFilter
@@ -91,9 +94,9 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-struct CRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+Base.@kwdef struct CRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
     "CR time constant"
-    cr::Real
+    cr::T
 end
 
 export CRFilter
@@ -121,9 +124,9 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-struct InvCRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+Base.@kwdef struct InvCRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
     "CR time constant"
-    cr::Real
+    cr::T
 end
 
 export InvCRFilter
