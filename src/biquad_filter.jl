@@ -2,16 +2,6 @@
 
 
 """
-    abstract type AbstractRadIIRFilter <: AbstractRadSigFilter{LinearFiltering}
-
-Abstract type for IIR filters.
-"""
-abstract type AbstractRadIIRFilter <: AbstractRadSigFilter{LinearFiltering} end
-export AbstractRadIIRFilter
-
-
-
-"""
     struct BiquadFilter{T<:RealQuantity} <: AbstractRadIIRFilter
 
 A [biquad filter](https://en.wikipedia.org/wiki/Digital_biquad_filter).
@@ -56,36 +46,6 @@ function InverseFunctions.inverse(flt::BiquadFilter)
     BiquadFilter((inv_b0, inv_b0 * a1, inv_b0 * a2), (inv_b0 * b1, inv_b0 * b2))
 end
 
-
-
-"""
-    struct RCFilter{T<:RealQuantity} <: AbstractRadIIRFilter
-
-A simple RC-filter.
-
-Constructors:
-
-* ```$(FUNCTIONNAME)(fields...)```
-
-Fields:
-
-$(TYPEDFIELDS)
-"""
-Base.@kwdef struct RCFilter{T<:RealQuantity} <: AbstractRadIIRFilter
-    "RC time constant"
-    rc::T
-end
-
-export RCFilter
-
-InverseFunctions.inverse(flt::RCFilter) = InvRCFilter(flt.rc)
-
-function BiquadFilter(flt::RCFilter)
-    RC = float(flt.rc)
-    α = 1 / (1 + RC)
-    T = typeof(α)
-    BiquadFilter((α, T(0), T(0)), (α - T(1), T(0)))
-end
 
 
 struct BiquadFilterInstance{T} <: AbstractRadSigFilter{LinearFiltering}
