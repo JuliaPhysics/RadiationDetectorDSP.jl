@@ -37,12 +37,13 @@ using DSP
         output = filt(rc_filter(RC), X)
         # output = df1_filt(rc_filter(RC), X)
         plot!(output)
+        output_deconv = filt(inv_rc_filter(RC), output)
+        plot!(output_deconv)
         hline!([1 - exp(-1)])
-        #output_deconv = filt(inv_rc_filter(RC), output)
-        #plot!(output_deconv)
+        @test X ≈ output_deconv
     end
 
-    @testset "rc_filter" begin
+    @testset "cr_filter" begin
         RC = 10
         X = vcat(fill(0.0, 10), fill(1.0, 30))
         plot(X)

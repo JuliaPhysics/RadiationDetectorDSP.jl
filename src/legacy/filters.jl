@@ -15,6 +15,19 @@ export rc_filter
 
 
 """
+    inv_rc_filter(RC::Real)
+
+Return a DSP.jl-compatible RC-filter.
+"""
+function inv_rc_filter(RC::Real)
+    T = float(typeof(RC))
+    k = 1 + RC
+    Biquad(T(k), T(1 - k), T(0), T(0), T(0))
+end
+export inv_rc_filter
+
+
+"""
     cr_filter(RC::Real)
 
 Return a DSP.jl-compatible CR-filter.
@@ -34,9 +47,8 @@ Return a DSP.jl-compatible inverse CR-filter.
 """
 function inv_cr_filter(RC::Real)
     T = float(typeof(RC))
-    α = 1 / (1 + RC)
-    k = 1 + 1/RC
-    Biquad(T(k), T(k * (α - 1)), T(0), T(-1), T(0))
+    k = 1 + inv(RC) # equivalent to k = -1 / (α - 1)
+    Biquad(T(k), T(-1), T(0), T(-1), T(0))
 end
 export inv_cr_filter
 
