@@ -12,31 +12,7 @@ export AbstractRadIIRFilter
 
 
 """
-    abstract type AbstractBiquadCompatibleFilter{T<:RealQuantity} <: AbstractRadIIRFilter
-
-Abstract type for IIR filters that can be expressed as a biquad filter.
-
-Conversions to DSP.jl:
-
-* `DSP.Biquad(flt::AbstractBiquadCompatibleFilter)`
-"""
-abstract type AbstractBiquadCompatibleFilter{T<:RealQuantity} <: AbstractRadIIRFilter end
-export AbstractBiquadCompatibleFilter
-
-
-DSP.Biquad{T}(flt::AbstractBiquadCompatibleFilter) where {T<:Real} = DSP.Biquad{T}(BiquadFilter(flt))
-
-function DSP.Biquad(flt::AbstractBiquadCompatibleFilter{T}) where {T<:Real}
-    U = float(T)
-    DSP.Biquad{U}(flt)
-end
-
-DSP.FilterCoefficients(flt::AbstractBiquadCompatibleFilter) = DSP.Biquad(flt)
-
-
-
-"""
-    struct BiquadFilter{T<:Real} <: AbstractBiquadCompatibleFilter
+    struct BiquadFilter{T<:Real} <: AbstractRadIIRFilter
 
 A biquad filter.
 
@@ -48,7 +24,7 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-struct BiquadFilter{T<:RealQuantity} <: AbstractBiquadCompatibleFilter{T}
+struct BiquadFilter{T<:RealQuantity} <: AbstractRadIIRFilter
     b0::T
     b1::T
     b2::T
@@ -86,7 +62,7 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-struct RCFilter{T<:RealQuantity} <: AbstractBiquadCompatibleFilter{T}
+Base.@kwdef struct RCFilter{T<:RealQuantity} <: AbstractBiquadCompatibleFilter{T}
     "RC time constant"
     rc::Real
 end

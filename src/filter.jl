@@ -67,8 +67,11 @@ The default methods for
 should not be overloaded for `AbstractRadSigFilter`. Instead, overload these
 methods for the filter instance type of `flt`.
 """
-abstract type AbstractRadSigFilter{FT<:FilteringType} end
+abstract type AbstractRadSigFilter{FT<:FilteringType} <: Function end
 export AbstractRadSigFilter
+
+(flt::AbstractRadSigFilter)(input) = rdfilt(flt, input)
+
 
 
 """
@@ -114,35 +117,11 @@ Default methods are implemented for
 The default methods that operate on `RadiationDetectorSignals.RDWaveform`s require
 [`RadiationDetectorDSP.flt_output_time_axis`](@ref).
 """
-abstract type AbstractRadSigFilterInstance{FT<:FilteringType} end
-export AbstractRadSigFilter
+abstract type AbstractRadSigFilterInstance{FT<:FilteringType} <: Function end
+export AbstractRadSigFilterInstance
 
+(fi::AbstractRadSigFilterInstance)(input) = rdfilt(fi, input)
 
-
-"""
-    fltinstance(
-        flt::AbstractRadSigFilter,
-        input_smpltype::Type{<:RealQuantity},
-        input_length::Integer,
-        input_dt::RealQuantity
-    )::AbstractRadSigFilterInstance
-
-    fltinstance(flt::AbstractRadSigFilter, input::AbstractSamples)::AbstractRadSigFilterInstance
-    fltinstance(flt::AbstractRadSigFilter, input::RDWaveform)::AbstractRadSigFilterInstance
-
-Create a filter instance of the filter `flt`, specialized for the given
-input, resp. input characteristics.
-"""
-function fltinstance end
-export fltinstance
-
-function fltinstance(flt::AbstractRadSigFilter, input::AbstractSamples)
-    fltinstance(flt, eltype(input), length(eachindex(input)), one(Int32))
-end
-
-function fltinstance(flt::AbstractRadSigFilter, input::RDWaveform)
-    fltinstance(flt, eltype(input.value), length(eachindex(input)), step(input.time))
-end
 
 
 """
@@ -174,6 +153,32 @@ rdfilt(flt::AbstractRadSigFilter, input) = rdfilt(fltinstance(flt, input), input
 
 
 """
+    fltinstance(
+        flt::AbstractRadSigFilter,
+        input_smpltype::Type{<:RealQuantity},
+        input_length::Integer,
+        input_dt::RealQuantity
+    )::AbstractRadSigFilterInstance
+
+    fltinstance(flt::AbstractRadSigFilter, input::AbstractSamples)::AbstractRadSigFilterInstance
+    fltinstance(flt::AbstractRadSigFilter, input::RDWaveform)::AbstractRadSigFilterInstance
+
+Create a filter instance of the filter `flt`, specialized for the given
+input, resp. input characteristics.
+"""
+function fltinstance end
+export fltinstance
+
+function fltinstance(flt::AbstractRadSigFilter, input::AbstractSamples)
+    fltinstance(flt, eltype(input), length(eachindex(input)), one(Int32))
+end
+
+function fltinstance(flt::AbstractRadSigFilter, input::RDWaveform)
+    fltinstance(flt, eltype(input.value), length(eachindex(input)), step(input.time))
+end
+
+
+"""
     RadiationDetectorDSP.flt_output_smpltype(flt::AbstractRadSigFilter, input_smpltype::Type{<:RealQuantity})
     RadiationDetectorDSP.flt_output_smpltype(fi::AbstractRadSigFilterInstance)
 
@@ -185,16 +190,6 @@ Get the output sample type for
 Must be implemented for all subtypes of [`AbstractRadSigFilter`](@ref).
 """
 function flt_output_smpltype end
-
-
-"""
-    RadiationDetectorDSP.flt_input_smpltype(fi::AbstractRadSigFilterInstance)
-
-Get the input sample type of a filter instance `fi`.
-    
-Must be implemented for all subtypes of [`AbstractRadSigFilterInstance`](@ref).
-"""
-function flt_input_smpltype end
 
 
 """
@@ -211,16 +206,7 @@ Must be implemented for all subtypes of [`AbstractRadSigFilter`](@ref) and
 function flt_output_length end
 
 
-"""
-    RadiationDetectorDSP.flt_input_length(fi::AbstractRadSigFilterInstance)::Integer
-
-Get the output signal length of a filter instance `fi`.
-
-Must be implemented for all subtypes of [`AbstractRadSigFilterInstance`](@ref).
-"""
-function flt_input_length end
-
-
+#=
 """
     RadiationDetectorDSP.flt_output_dt(flt::SomeFilter, input_dt::RealQuantity)::RealQuantity
     RadiationDetectorDSP.flt_output_dt(fi::SomeFilterInstance)::RealQuantity
@@ -234,6 +220,43 @@ Must be implemented for all subtypes of [`AbstractRadSigFilter`](@ref) and
 [`AbstractRadSigFilterInstance`](@ref).        
 """
 function flt_output_dt end
+=#
+
+
+"""
+    RadiationDetectorDSP.flt_output_time_axis(flt::SomeFilter, time::AbstractVector{<:RealQuantity})::AbstractVector{<:RealQuantity}
+    RadiationDetectorDSP.flt_output_time_axis(fi::SomeFilterInstance, time::AbstractVector{<:RealQuantity})::AbstractVector{<:RealQuantity}
+
+Get the output time axis of a filter instance `fi`, given an input time axis
+`time`.
+
+Must be implemented for subtypes of [`AbstractRadSigFilter`](@ref) and
+[`AbstractRadSigFilterInstance`](@ref) only if the filter's output time axis
+can be computed directly from the input time axis.
+"""
+function flt_output_time_axis end
+
+
+"""
+    RadiationDetectorDSP.flt_input_smpltype(fi::AbstractRadSigFilterInstance)
+
+Get the input sample type of a filter instance `fi`.
+    
+Must be implemented for all subtypes of [`AbstractRadSigFilterInstance`](@ref).
+"""
+function flt_input_smpltype end
+
+
+"""
+    RadiationDetectorDSP.flt_input_length(fi::AbstractRadSigFilterInstance)::Integer
+
+Get the output signal length of a filter instance `fi`.
+
+Must be implemented for all subtypes of [`AbstractRadSigFilterInstance`](@ref).
+"""
+function flt_input_length end
+
+
 
 
 """
@@ -246,17 +269,6 @@ Must be implemented for all subtypes of [`AbstractRadSigFilterInstance`](@ref).
 function flt_input_dt end
 
 
-"""
-    RadiationDetectorDSP.flt_output_time_axis(fi::AbstractRadSigFilterInstance, time::Range)::Range
-
-Get the output time axis of a filter instance `fi`, given an input time axis
-`time`.
-
-Must be implemented for subtypes of [`AbstractRadSigFilter`](@ref) and
-[`AbstractRadSigFilterInstance`](@ref) only if the filter's output time axis
-can be computed directly from the input time axis.
-"""
-function flt_output_time_axis end
 
 
 
