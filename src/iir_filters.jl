@@ -45,11 +45,17 @@ fltparameters(f::BiquadFilter) = (b_012 = f.b_012, a_12 = f.a_12)
 fltparameters(f::DSP.Biquad) = (b_012 = SVec(f.b0, f.b1, f.b2), a_12 = SVec(one(f.a1), f.a1, f.a2))
 
 
-# inverse:
-# y[i] = b0 * x[i] + b1 * x[i-1] + b2 * x[i-2] - a1 * y[i-1] - a2 * y[i-2]
-# x[i] = 1 * y[i] + a1/b0 * y[i-1] + a2/b0 * y[i-2] - b1/b0 * x[i-1] - b2/b0 * x[i-2]
+function InverseFunctions.inverse(flt::BiquadFilter)
+    # In direct form 1:
+    # y[i] = b0 * x[i] + b1 * x[i-1] + b2 * x[i-2] - a1 * y[i-1] - a2 * y[i-2]
+    # x[i] = 1/b0 * y[i] + a1/b0 * y[i-1] + a2/b0 * y[i-2] - b1/b0 * x[i-1] - b2/b0 * x[i-2]
 
+    b0, b1, b2 = flt.b_012
+    a1, a2 = flt.a_12
+    inv_b0 = inv(b0)
 
+    BiquadFilter((inv_b0, inv_b0 * a1, inv_b0 * a2), (inv_b0 * b1, inv_b0 * b2))
+end
 
 
 """
@@ -72,11 +78,44 @@ end
 
 export RCFilter
 
+InverseFunctions.inverse(flt::RCFilter) = InvRCFilter(flt.rc)
+
 function BiquadFilter(flt::RCFilter)
-    RC = float(flt.RC)
-    T = typeof(RC)
+    RC = float(flt.rc)
     α = 1 / (1 + RC)
-    BiquadFilter((α, 0, 0), (α - 1, 0))
+    T = typeof(α)
+    BiquadFilter((α, T(0), T(0)), (α - T(1), T(0)))
+end
+
+
+
+"""
+    struct InvRCFilter{T<:Real} <: AbstractRadIIRFilter
+
+A simple RC-filter.
+
+Constructors:
+
+* ```$(FUNCTIONNAME)(fields...)```
+
+Fields:
+
+$(TYPEDFIELDS)
+"""
+Base.@kwdef struct InvRCFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+    "RC time constant"
+    rc::T
+end
+
+export InvRCFilter
+
+InverseFunctions.inverse(flt::InvRCFilter) = RCFilter(flt.rc)
+
+function BiquadFilter(flt::InvRCFilter)
+    RC = float(flt.rc)
+    k = 1 + RC
+    T = typeof(k)
+    BiquadFilter((k, T(1) - k, T(0)), (T(0), T(0)))
 end
 
 
@@ -101,12 +140,13 @@ end
 
 export CRFilter
 
-Base.inv(flt::CRFilter) = InvCRFilter(flt.cr)
+InverseFunctions.inverse(flt::CRFilter) = InvCRFilter(flt.cr)
 
 function BiquadFilter(flt::CRFilter)
     CR = float(flt.cr)
     α = CR / (CR + 1)
-    BiquadFilter((α, -α, 0), (-α, 0))
+    T = typeof(α)
+    BiquadFilter((α, -α, T(0)), (-α, T(0)))
 end
 
 
@@ -131,7 +171,7 @@ end
 
 export InvCRFilter
 
-Base.inv(flt::InvCRFilter) = CRFilter(flt.cr)
+InverseFunctions.inverse(flt::InvCRFilter) = CRFilter(flt.cr)
 
 function BiquadFilter(flt::InvCRFilter)
     CR = float(flt.cr)
