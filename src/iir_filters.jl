@@ -50,7 +50,7 @@ coeffs_b_a(f::DSP.Biquad) = (SVec(f.b0, f.b1, f.b2), SVec(one(f.a1), f.a1, f.a2)
 
 
 """
-    struct RCFilter{T<:Real} <: AbstractBiquadCompatibleFilter
+    struct RCFilter{T<:Real} <: AbstractRadIIRFilter
 
 A simple RC-filter.
 
@@ -62,7 +62,7 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-Base.@kwdef struct RCFilter{T<:RealQuantity} <: AbstractBiquadCompatibleFilter{T}
+Base.@kwdef struct RCFilter{T<:RealQuantity} <: AbstractRadIIRFilter
     "RC time constant"
     rc::Real
 end
@@ -79,7 +79,7 @@ end
 
 
 """
-    struct CRFilter{T<:Real} <: AbstractBiquadCompatibleFilter
+    struct CRFilter{T<:Real} <: AbstractRadIIRFilter
 
 A simple CR-filter.
 
@@ -91,7 +91,7 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-struct CRFilter{T<:RealQuantity} <: AbstractBiquadCompatibleFilter{T}
+struct CRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
     "CR time constant"
     cr::Real
 end
@@ -109,7 +109,7 @@ end
 
 
 """
-    struct InvCRFilter{T<:Real} <: AbstractBiquadCompatibleFilter
+    struct InvCRFilter{T<:Real} <: AbstractRadIIRFilter
 
 Inverse of [`CRFilter`](@ref).
 
@@ -121,7 +121,7 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-struct InvCRFilter{T<:RealQuantity} <: AbstractBiquadCompatibleFilter{T}
+struct InvCRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
     "CR time constant"
     cr::Real
 end
