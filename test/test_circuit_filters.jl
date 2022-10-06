@@ -13,5 +13,5 @@ using DSP
     fi = fltinstance(flt, x)
     y = similar(x)
     rdfilt!(y, fi, x)
-
+    rdfilt(fi, x)
 end

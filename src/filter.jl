@@ -114,15 +114,7 @@ export AbstractRadSigFilterInstance
 Base.Broadcast.broadcasted(fi::AbstractRadSigFilterInstance, inputs) = bcrdfilt(fi, Base.materialize(inputs))
 
 
-
 """
-    fltinstance(
-        flt::AbstractRadSigFilter,
-        input_smpltype::Type{<:RealQuantity},
-        input_length::Integer,
-        input_dt::RealQuantity
-    )::AbstractRadSigFilterInstance
-
     fltinstance(flt::AbstractRadSigFilter, input::AbstractSamples)::AbstractRadSigFilterInstance
     fltinstance(flt::AbstractRadSigFilter, input::RDWaveform)::AbstractRadSigFilterInstance
 
@@ -132,6 +124,16 @@ input, resp. input characteristics.
 function fltinstance end
 export fltinstance
 
+#=
+ToDo: Do we want/need this?
+
+    fltinstance(
+        flt::AbstractRadSigFilter,
+        input_smpltype::Type{<:RealQuantity},
+        input_length::Integer,
+        input_dt::RealQuantity
+    )::AbstractRadSigFilterInstance
+
 function fltinstance(flt::AbstractRadSigFilter, input::AbstractSamples)
     fltinstance(flt, eltype(input), length(eachindex(input)), one(Int32))
 end
@@ -139,6 +141,7 @@ end
 function fltinstance(flt::AbstractRadSigFilter, input::RDWaveform)
     fltinstance(flt, eltype(input.signal), length(eachindex(input)), step(input.time))
 end
+=#
 
 
 """
@@ -171,7 +174,7 @@ rdfilt(flt::AbstractRadSigFilter, input) = rdfilt(fltinstance(flt, input), input
 function rdfilt(fi::AbstractRadSigFilterInstance, input::AbstractSamples)
     T_out = flt_output_smpltype(fi)
     n_out = flt_output_length(fi)
-    output = similar(x, U, n_out)
+    output = similar(input, T_out, n_out)
     rdfilt!(output, fi, input)
 end
 
