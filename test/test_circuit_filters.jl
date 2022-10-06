@@ -3,11 +3,11 @@
 using RadiationDetectorDSP
 using Test
 
-using Random, LinearAlgebra, Statistics
+using Random, LinearAlgebra, InverseFunctions
 using DSP
 
 
-@testset "IIR Filters" begin
+@testset "circuit_filters" begin
     flt = RCFilter(100)
 
 end

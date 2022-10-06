@@ -1,14 +1,6 @@
 # This file is a part of RadiationDetectorDSP.jl, licensed under the MIT License (MIT).
 
 
-"""
-    abstract type AbstractRadFIRFilter <: AbstractRadLinearFilter
-
-Abstract type for FIR filters.
-"""
-abstract type AbstractRadFIRFilter <: AbstractRadLinearFilter end
-export AbstractRadFIRFilter
-
 
 
 # ToDo:

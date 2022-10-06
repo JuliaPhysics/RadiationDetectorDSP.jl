@@ -96,11 +96,6 @@ Invertible filter instances should implement
 
 * `InverseFunctions.inverse(fi::SomeFilterInstance)`
 
-If a filter's output time axis can be computed from the input time axis, it
-must implement
-
-* `RadiationDetectorDSP.flt_output_time_axis(fi::SomeFilterInstance, time::Range)`
-
 Default methods are implemented for
 
 * `RadiationDetectorDSP.rdfilt(fi::AbstractRadSigFilterInstance, x::AbstractSamples)`
@@ -330,6 +325,25 @@ function create_output(ArrayType::Type{<:AbstractArray}, fi::AbstractRadSigFilte
     ArrayType(Fill(zero(T_out), n_out))
 end
 
+
+
+"""
+    abstract type AbstractRadIIRFilter <: AbstractRadSigFilter{LinearFiltering}
+
+Abstract type for IIR filters.
+"""
+abstract type AbstractRadIIRFilter <: AbstractRadSigFilter{LinearFiltering} end
+export AbstractRadIIRFilter
+
+
+
+"""
+    abstract type AbstractRadFIRFilter <: AbstractRadLinearFilter
+
+Abstract type for FIR filters.
+"""
+abstract type AbstractRadFIRFilter <: AbstractRadSigFilter{LinearFiltering} end
+export AbstractRadFIRFilter
 
 
 
