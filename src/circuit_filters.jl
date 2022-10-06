@@ -21,7 +21,7 @@ end
 
 export RCFilter
 
-fltinstance(flt::RCFilter) = fltinstance(BiquadFilter(flt))
+fltinstance(flt::RCFilter, input) = fltinstance(BiquadFilter(flt), input)
 
 InverseFunctions.inverse(flt::RCFilter) = InvRCFilter(flt.rc)
 
@@ -54,7 +54,7 @@ end
 
 export InvRCFilter
 
-fltinstance(flt::InvRCFilter) = fltinstance(BiquadFilter(flt))
+fltinstance(flt::InvRCFilter, input) = fltinstance(BiquadFilter(flt), input)
 
 InverseFunctions.inverse(flt::InvRCFilter) = RCFilter(flt.rc)
 
@@ -87,7 +87,7 @@ end
 
 export CRFilter
 
-fltinstance(flt::CRFilter) = fltinstance(BiquadFilter(flt))
+fltinstance(flt::CRFilter, input) = fltinstance(BiquadFilter(flt), input)
 
 InverseFunctions.inverse(flt::CRFilter) = InvCRFilter(flt.cr)
 
@@ -120,7 +120,7 @@ end
 
 export InvCRFilter
 
-fltinstance(flt::InvCRFilter) = fltinstance(BiquadFilter(flt))
+fltinstance(flt::InvCRFilter, input) = fltinstance(BiquadFilter(flt), input)
 
 InverseFunctions.inverse(flt::InvCRFilter) = CRFilter(flt.cr)
 
@@ -152,7 +152,7 @@ end
 
 export ModCRFilter
 
-fltinstance(flt::ModCRFilter) = fltinstance(BiquadFilter(flt))
+fltinstance(flt::ModCRFilter, input) = fltinstance(BiquadFilter(flt), input)
 
 InverseFunctions.inverse(flt::ModCRFilter) = InvModCRFilter(flt.cr)
 
@@ -184,7 +184,7 @@ end
 
 export InvModCRFilter
 
-fltinstance(flt::InvModCRFilter) = fltinstance(BiquadFilter(flt))
+fltinstance(flt::InvModCRFilter, input) = fltinstance(BiquadFilter(flt), input)
 
 InverseFunctions.inverse(flt::InvModCRFilter) = ModCRFilter(flt.cr)
 
@@ -217,7 +217,7 @@ end
 
 export IntegratorFilter
 
-fltinstance(flt::IntegratorFilter) = fltinstance(BiquadFilter(flt))
+fltinstance(flt::IntegratorFilter, input) = fltinstance(BiquadFilter(flt), input)
 
 InverseFunctions.inverse(flt::IntegratorFilter) = DifferentiatorFilter(flt.gain)
 
@@ -249,7 +249,7 @@ end
 
 export DifferentiatorFilter
 
-fltinstance(flt::DifferentiatorFilter) = fltinstance(BiquadFilter(flt))
+fltinstance(flt::DifferentiatorFilter, input) = fltinstance(BiquadFilter(flt), input)
 
 InverseFunctions.inverse(flt::DifferentiatorFilter) = IntegratorFilter(flt.gain)
 
@@ -283,7 +283,7 @@ end
 
 export IntegratorCRFilter
 
-fltinstance(flt::IntegratorCRFilter) = fltinstance(BiquadFilter(flt))
+fltinstance(flt::IntegratorCRFilter, input) = fltinstance(BiquadFilter(flt), input)
 
 InverseFunctions.inverse(flt::IntegratorCRFilter) = inverse(BiquadFilter(flt))
 
@@ -319,7 +319,7 @@ end
 
 export IntegratorModCRFilter
 
-fltinstance(flt::IntegratorModCRFilter) = fltinstance(BiquadFilter(flt))
+fltinstance(flt::IntegratorModCRFilter, input) = fltinstance(BiquadFilter(flt), input)
 
 InverseFunctions.inverse(flt::IntegratorModCRFilter) = inverse(BiquadFilter(flt))
 
@@ -359,7 +359,7 @@ end
 
 export SimpleCSAFilter
 
-fltinstance(flt::SimpleCSAFilter) = fltinstance(_lower_flt(flt))
+fltinstance(flt::SimpleCSAFilter, input) = fltinstance(_lower_flt(flt), input)
 
 InverseFunctions.inverse(flt::SimpleCSAFilter) = inverse(_lower_flt(flt))
 

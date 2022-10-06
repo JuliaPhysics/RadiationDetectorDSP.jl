@@ -8,6 +8,10 @@ using DSP
 
 
 @testset "circuit_filters" begin
-    flt = RCFilter(100)
+    x = vcat(zeros(23),ones(24))
+    flt = RCFilter(7)
+    fi = fltinstance(flt, x)
+    y = similar(x)
+    rdfilt!(y, fi, x)
 
 end
