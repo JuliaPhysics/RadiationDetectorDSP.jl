@@ -53,7 +53,7 @@ The default methods for
 
 * `RadiationDetectorDSP.rdfilt(flt::AbstractRadSigFilter, input)`
 * `RadiationDetectorDSP.rdfilt!(output, flt::AbstractRadSigFilter, input)`
-* `RadiationDetectorDSP.bcrdfilt(flt::AbstractRadSigFilter, inputs)`
+* `RadiationDetectorDSP.bc_rdfilt(flt::AbstractRadSigFilter, inputs)`
 
 should not be overloaded for `AbstractRadSigFilter`. Instead, overload these
 methods for the filter instance type of `flt`.
@@ -95,7 +95,7 @@ Default methods are implemented for
 
 * `RadiationDetectorDSP.rdfilt(fi::AbstractRadSigFilterInstance, x::AbstractSamples)`
 * `RadiationDetectorDSP.rdfilt(fi::AbstractRadSigFilterInstance, wf::RDWaveform)`
-* `RadiationDetectorDSP.bcrdfilt(fi::AbstractRadSigFilterInstance, inputs)`
+* `RadiationDetectorDSP.bc_rdfilt(fi::AbstractRadSigFilterInstance, inputs)`
 
 The default methods that operate on `RadiationDetectorSignals.RDWaveform`s require
 [`RadiationDetectorDSP.flt_output_time_axis`](@ref).
@@ -105,8 +105,8 @@ export AbstractRadSigFilterInstance
 
 (fi::AbstractRadSigFilterInstance)(input) = rdfilt(fi, input)
 
-# ToDo: Support mutating broadcasts (needs a bcrdfilt! that takes chained filters into account)
-Base.Broadcast.broadcasted(fi::AbstractRadSigFilterInstance, inputs) = bcrdfilt(fi, Base.materialize(inputs))
+# ToDo: Support mutating broadcasts (needs a bc_rdfilt! that takes chained filters into account)
+Base.Broadcast.broadcasted(fi::AbstractRadSigFilterInstance, inputs) = bc_rdfilt(fi, Base.materialize(inputs))
 
 
 """
@@ -167,42 +167,76 @@ function rdfilt(fi::AbstractRadSigFilterInstance, input::RDWaveform)
 end
 
 
+#=
 function rdfilt!(output::RDWaveform, fi::AbstractRadSigFilterInstance, input::RDWaveform)
     @argcheck output.time == flt_output_time_axis(fi, input.time)
     y = rdfilt!(output.signal, fi, input.signal)
     output
 end
-
-
-# ToDo: Add bcrdfilt!, will need to allocate/manage intermediate results for filter chains
-#=
-"""
-    bcrdfilt!(outputs, flt::AbstractRadSigFilter, inputs)
-    bcrdfilt!(outputs, fi::AbstractRadSigFilterInstance, inputs)
-
-Broadcast filter `flt` or filter instance `fi` over signals `inputs` and store the
-filtered signals in `outputs`. Return `outputs`.
-"""
-function dfilt! end
-export bcrdfilt!
-
-bcrdfilt!(outputs, flt::AbstractRadSigFilter, inputs) = bcrdfilt!(outputs, fltinstance(flt, smplinfo(input)), inputs)
 =#
 
 
 """
-    bcrdfilt(flt::AbstractRadSigFilter, input)
-    bcrdfilt(fi::AbstractRadSigFilterInstance, input)
+    bc_rdfilt(flt::AbstractRadSigFilter, input)
+    bc_rdfilt(fi::AbstractRadSigFilterInstance, input)
 
 Broadcast filter `flt` or filter instance `fi` over signals `input`, return the
 filtered signals.
 """
-function bcrdfilt end
-export bcrdfilt
+function bc_rdfilt end
 
-bcrdfilt(flt::AbstractRadSigFilter, inputs) = bcrdfilt(fltinstance(flt, smplinfo(input)), inputs)
+bc_rdfilt(flt::AbstractRadSigFilter, inputs) = bc_rdfilt(fltinstance(flt, smplinfo(input)), inputs)
 
-#!!!!!!!! ToDo: bcrdfilt(fi::AbstractRadSigFilterInstance, inputs::ArrayOfRDWaveforms)
+function bc_rdfilt(fi::AbstractRadSigFilterInstance, inputs)
+    broadcast((input -> rdfilt(fi, input)), inputs)
+end
+
+function bc_rdfilt(
+    fi::AbstractRadSigFilterInstance,
+    inputs::ArrayOfSimilarArrays{<:RealQuantity,M,N}
+) where {M,N}
+    T_out = flt_output_smpltype(fi)
+    n_out = flt_output_length(fi)
+    flat_output = similar(input, T_out, n_out, size(inputs)...)
+    outputs = ArrayOfRDWaveforms{T_out,M,N}(flat_output)
+    rdfilt!(outputs, fi, inputs)
+end
+
+function bc_rdfilt(
+    fi::AbstractRadSigFilterInstance,
+    inputs::ArrayOfRDWaveforms{<:RealQuantity}
+)
+    output_signal = bc_rdfilt(fi, inputs.signal)
+    output_time = broadcast(t -> flt_output_time_axis(fi, t), inputs.time)
+    return ArrayOfRDWaveforms((output_time, output_signal))
+end
+
+
+"""
+    bc_rdfilt!(outputs, flt::AbstractRadSigFilter, inputs)
+    bc_rdfilt!(outputs, fi::AbstractRadSigFilterInstance, inputs)
+
+Broadcast filter `flt` or filter instance `fi` over signals `inputs`, storing
+the results in `outputs`.
+
+`inputs` and `outputs` must be of type `AbstractVector{<:AbstractSamples}`.
+
+Returns `outputs`.
+"""
+function bc_rdfilt! end
+
+bc_rdfilt!(outputs, flt::AbstractRadSigFilter, inputs) = rdfilt(outputs, fltinstance(flt, elsmplinfo(inputs)), inputs)
+
+function bc_rdfilt!(
+    outputs::AbstractVector{<:AbstractSamples},
+    fi::AbstractRadSigFilterInstance,
+    inputs::AbstractVector{<:AbstractSamples}
+)
+    Base.Threads.@threads for i in eachindex(outputs)
+        rdfilt!(outputs[i], fi, inputs[i])
+    end
+    return outputs
+end
 
 
 """
@@ -260,36 +294,6 @@ can be computed directly from the input time axis.
 """
 function flt_output_time_axis end
 
-
-#=
-# ToDo - do we want/need this?
-"""
-    RadiationDetectorDSP.flt_output_dt(flt::SomeFilter, input_dt::RealQuantity)::RealQuantity
-    RadiationDetectorDSP.flt_output_dt(fi::SomeFilterInstance)::RealQuantity
-
-Get the output sampling interval of
-
-* a filter `flt`, given an input sampling interval `input_dt`
-* a filter instance `fi`
-
-Must be implemented for all subtypes of [`AbstractRadSigFilter`](@ref) and
-[`AbstractRadSigFilterInstance`](@ref).        
-"""
-function flt_output_dt end
-=#
-
-
-#=
-# ToDo - Do we want/need this?
-"""
-    RadiationDetectorDSP.flt_input_dt(fi::AbstractRadSigFilterInstance)::RealQuantity
-
-Get the input sampling interval of a filter instance `fi`.
-
-Must be implemented for all subtypes of [`AbstractRadSigFilterInstance`](@ref).
-"""
-function flt_input_dt end
-=#
 
 
 #function check_input_compat(fi::AbstractRadSigFilterInstance, input::RDWaveform)
