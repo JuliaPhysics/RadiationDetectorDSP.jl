@@ -67,4 +67,13 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
     @test @inferred(bc_rdfilt!(Y, fi, X)) === Y
     @test Y ≈ Y_ref
+    @test @inferred(bc_rdfilt!(Y, flt, X)) === Y
+    @test Y ≈ Y_ref
+
+    @test @inferred(bc_rdfilt(fi, X)) ≈ Y
+    @test @inferred(bc_rdfilt(flt, X)) ≈ Y
+    @test @inferred(fi.(X)) ≈ Y
+    @test @inferred(flt.(Y)) ≈ Y
+    @test typeof(fi.(X)) == typeof(Y)
+    @test typeof(flt.(X)) == typeof(Y)
 end

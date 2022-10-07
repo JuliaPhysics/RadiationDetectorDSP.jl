@@ -63,6 +63,9 @@ export AbstractRadSigFilter
 
 (flt::AbstractRadSigFilter)(input) = rdfilt(flt, input)
 
+# ToDo: Support mutating broadcasts (needs a bc_rdfilt! that takes chained filters into account)
+Base.Broadcast.broadcasted(flt::AbstractRadSigFilter, inputs) = bc_rdfilt(flt, Base.materialize(inputs))
+
 
 """
     abstract type AbstractRadSigFilterInstance{FT<:FilteringType}
@@ -185,7 +188,7 @@ filtered signals.
 """
 function bc_rdfilt end
 
-bc_rdfilt(flt::AbstractRadSigFilter, inputs) = bc_rdfilt(fltinstance(flt, smplinfo(input)), inputs)
+bc_rdfilt(flt::AbstractRadSigFilter, inputs) = bc_rdfilt(fltinstance(flt, elsmplinfo(inputs)), inputs)
 
 function bc_rdfilt(fi::AbstractRadSigFilterInstance, inputs)
     broadcast((input -> rdfilt(fi, input)), inputs)
@@ -197,9 +200,9 @@ function bc_rdfilt(
 ) where {M,N}
     T_out = flt_output_smpltype(fi)
     n_out = flt_output_length(fi)
-    flat_output = similar(input, T_out, n_out, size(inputs)...)
-    outputs = ArrayOfRDWaveforms{T_out,M,N}(flat_output)
-    rdfilt!(outputs, fi, inputs)
+    flat_output = similar(inputs, T_out, n_out, size(inputs)...)
+    outputs = ArrayOfSimilarArrays{T_out,M,N}(flat_output)
+    bc_rdfilt!(outputs, fi, inputs)
 end
 
 function bc_rdfilt(
@@ -225,7 +228,7 @@ Returns `outputs`.
 """
 function bc_rdfilt! end
 
-bc_rdfilt!(outputs, flt::AbstractRadSigFilter, inputs) = rdfilt(outputs, fltinstance(flt, elsmplinfo(inputs)), inputs)
+bc_rdfilt!(outputs, flt::AbstractRadSigFilter, inputs) = bc_rdfilt!(outputs, fltinstance(flt, elsmplinfo(inputs)), inputs)
 
 function bc_rdfilt!(
     outputs::AbstractVector{<:AbstractSamples},
