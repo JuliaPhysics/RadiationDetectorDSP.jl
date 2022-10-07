@@ -1,8 +1,17 @@
 # This file is a part of RadiationDetectorDSP.jl, licensed under the MIT License (MIT).
 
 
-_getdummyelem(A::AbstractArray) = first(A)
-_getdummyelem(A::FillArrays.Fill) = A.value
+#_getdummyelem(A::AbstractArray) = first(A)
+#_getdummyelem(A::FillArrays.Fill) = A.value
+
+function _uniqueelem(A::AbstractArray)
+    x = first(A)
+    @argcheck all(isequal(x), A)
+    return x
+end
+
+_uniqueelem(A::FillArrays.Fill) = A.value
+
 
 
 _bcgetindex(A::AbstractArray{<:AbstractArray}, idxs...) = broadcast(getindex, A, map(Ref, idxs)...)
@@ -16,3 +25,31 @@ end
 
 _bcgetindex_renest(flat_B::AbstractArray{T}, ::Val{M}, ::Val{N}) where {T,M,N} = ArrayOfSimilarArrays{T,M,N}(flat_B)
 _bcgetindex_renest(flat_B::AbstractArray{T}, ::Val{M}, ::Val{0}) where {T,M} = flat_B
+
+
+function _inneraxes(A::AbstractArray{<:AbstractArray{T,M},N}) where {T,M,N}
+    ax = if !isempty(A)
+        axes(first(A))
+    else
+        ntuple(_ ->  Base.OneTo(0), Val(M))
+    end
+
+    let ax = ax
+        if any(X -> axes(X) != ax, A)
+            throw(DimensionMismatch("Axes of element arrays of A are not equal, can't determine common shape"))
+        end
+    end
+
+    ax
+end
+
+@inline _inneraxes(A::AbstractArray{<:AbstractArray}, dim::Integer) =
+    _inneraxes(A)[dim]
+
+@inline function _inneraxes(A::ArrayOfSimilarArrays{T,M,N}) where {T,M,N}
+    ArraysOfArrays.front_tuple(axes(A.data), Val{M}())
+end
+
+@inline function _inneraxes(A::FillArrays.Fill{<:AbstractArray})
+    axes(A.value)
+end
