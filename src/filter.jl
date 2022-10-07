@@ -42,15 +42,10 @@ specialized broadcasting.
 Subtypes of `AbstractRadSigFilter` must implement
 
 ```
-fltinstance(
-    flt::AbstractRadSigFilter,
-    input_smpltype::Type{<:RealQuantity},
-    input_length::Integer,
-    input_dt::RealQuantity
-)::[`AbstractRadSigFilterInstance`](@ref)
+fltinstance(flt::AbstractRadSigFilter, si::SamplingInfo)::[`AbstractRadSigFilterInstance`](@ref)
 ```
 
-Invertible filters also must implement
+Invertible filters must also implement
 
 * `InverseFunctions.inverse(flt::SomeFilter)`
 
@@ -115,8 +110,7 @@ Base.Broadcast.broadcasted(fi::AbstractRadSigFilterInstance, inputs) = bcrdfilt(
 
 
 """
-    fltinstance(flt::AbstractRadSigFilter, input::AbstractSamples)::AbstractRadSigFilterInstance
-    fltinstance(flt::AbstractRadSigFilter, input::RDWaveform)::AbstractRadSigFilterInstance
+    fltinstance(flt::AbstractRadSigFilter, si::SamplingInfo)::AbstractRadSigFilterInstance
 
 Create a filter instance of the filter `flt`, specialized for the given
 input, resp. input characteristics.
@@ -125,22 +119,9 @@ function fltinstance end
 export fltinstance
 
 #=
-ToDo: Do we want/need this?
-
-    fltinstance(
-        flt::AbstractRadSigFilter,
-        input_smpltype::Type{<:RealQuantity},
-        input_length::Integer,
-        input_dt::RealQuantity
-    )::AbstractRadSigFilterInstance
-
-function fltinstance(flt::AbstractRadSigFilter, input::AbstractSamples)
-    fltinstance(flt, eltype(input), length(eachindex(input)), one(Int32))
-end
-
-function fltinstance(flt::AbstractRadSigFilter, input::RDWaveform)
-    fltinstance(flt, eltype(input.signal), length(eachindex(input)), step(input.time))
-end
+ToDo: Do we want these convenience methods?
+fltinstance(flt::AbstractRadSigFilter, input::AbstractSamples) = fltinstance(flt, smplinfo(input))
+fltinstance(flt::AbstractRadSigFilter, input::RDWaveform) = fltinstance(flt, smplinfo(input))
 =#
 
 
@@ -154,7 +135,7 @@ filtered signal in `output`. Return `output`.
 function dfilt! end
 export rdfilt!
 
-rdfilt!(output, flt::AbstractRadSigFilter, input) = rdfilt!(output, fltinstance(flt, input), input)
+rdfilt!(output, flt::AbstractRadSigFilter, input) = rdfilt!(output, fltinstance(flt, smplinfo(input)), input)
 
 
 """
@@ -169,7 +150,7 @@ Returns `output`.
 function rdfilt end
 export rdfilt
 
-rdfilt(flt::AbstractRadSigFilter, input) = rdfilt(fltinstance(flt, input), input)
+rdfilt(flt::AbstractRadSigFilter, input) = rdfilt(fltinstance(flt, smplinfo(input)), input)
 
 function rdfilt(fi::AbstractRadSigFilterInstance, input::AbstractSamples)
     T_out = flt_output_smpltype(fi)
@@ -205,7 +186,7 @@ filtered signals in `outputs`. Return `outputs`.
 function dfilt! end
 export bcrdfilt!
 
-bcrdfilt!(outputs, flt::AbstractRadSigFilter, inputs) = bcrdfilt!(outputs, fltinstance(flt, input), inputs)
+bcrdfilt!(outputs, flt::AbstractRadSigFilter, inputs) = bcrdfilt!(outputs, fltinstance(flt, smplinfo(input)), inputs)
 =#
 
 
@@ -219,7 +200,7 @@ filtered signals.
 function bcrdfilt end
 export bcrdfilt
 
-bcrdfilt(flt::AbstractRadSigFilter, inputs) = bcrdfilt(fltinstance(flt, input), inputs)
+bcrdfilt(flt::AbstractRadSigFilter, inputs) = bcrdfilt(fltinstance(flt, smplinfo(input)), inputs)
 
 #!!!!!!!! ToDo: bcrdfilt(fi::AbstractRadSigFilterInstance, inputs::ArrayOfRDWaveforms)
 

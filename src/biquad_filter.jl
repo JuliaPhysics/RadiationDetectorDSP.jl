@@ -29,10 +29,8 @@ export BiquadFilter
 #fltparameters(f::DSP.Biquad) = (b_012 = SVec(f.b0, f.b1, f.b2), a_12 = SVec(one(f.a1), f.a1, f.a2))
 
 
-function fltinstance(flt::BiquadFilter, input::AbstractSamples)
-    n = length(eachindex(input))
-    T = eltype(input)
-    BiquadFilterInstance{T}(flt.b_012, flt.a_12, n)
+function fltinstance(flt::BiquadFilter, si::SamplingInfo{T}) where T
+    BiquadFilterInstance{T}(flt.b_012, flt.a_12, _smpllen(si))
 end
 
 

@@ -13,7 +13,6 @@ end
 _uniqueelem(A::FillArrays.Fill) = A.value
 
 
-
 _bcgetindex(A::AbstractArray{<:AbstractArray}, idxs...) = broadcast(getindex, A, map(Ref, idxs)...)
 
 function _bcgetindex(A::ArrayOfSimilarArrays{T,M,N}, idxs...) where {T,M,N}
