@@ -262,9 +262,7 @@ function flt_output_time_axis end
 
 
 #=
-
 # ToDo - do we want/need this?
-
 """
     RadiationDetectorDSP.flt_output_dt(flt::SomeFilter, input_dt::RealQuantity)::RealQuantity
     RadiationDetectorDSP.flt_output_dt(fi::SomeFilterInstance)::RealQuantity
@@ -280,10 +278,9 @@ Must be implemented for all subtypes of [`AbstractRadSigFilter`](@ref) and
 function flt_output_dt end
 =#
 
+
 #=
-
 # ToDo - Do we want/need this?
-
 """
     RadiationDetectorDSP.flt_input_dt(fi::AbstractRadSigFilterInstance)::RealQuantity
 
@@ -292,22 +289,20 @@ Get the input sampling interval of a filter instance `fi`.
 Must be implemented for all subtypes of [`AbstractRadSigFilterInstance`](@ref).
 """
 function flt_input_dt end
-
 =#
 
 
+#function check_input_compat(fi::AbstractRadSigFilterInstance, input::RDWaveform)
+#    @argcheck flt_input_smpltype(fi) == eltype(input)
+#    @argcheck flt_input_length(fi) == length(eachindex(input))
+#end
 
-function check_input_compat(fi::AbstractRadSigFilterInstance, input::RDWaveform)
-    @argcheck flt_input_smpltype(fi) == eltype(input)
-    @argcheck flt_input_length(fi) == length(eachindex(input))
-    @argcheck flt_input_dt(fi) == step(input)
-end
 
-function create_output(ArrayType::Type{<:AbstractArray}, fi::AbstractRadSigFilterInstance)
-    T_out = flt_output_smpltype(fi)
-    n_out = flt_output_length(fi)
-    ArrayType(Fill(zero(T_out), n_out))
-end
+#function create_output(ArrayType::Type{<:AbstractArray}, fi::AbstractRadSigFilterInstance)
+#    T_out = flt_output_smpltype(fi)
+#    n_out = flt_output_length(fi)
+#    ArrayType(Fill(zero(T_out), n_out))
+#end
 
 
 
@@ -342,80 +337,4 @@ function getoperator end
 export getoperator
 
 RadiationDetectorDSP.getoperator(fi::AbstractRadSigFilterInstance{LinearFiltering}) = ...
-=#
-
-
-
-# ToDo: Custom broadcasting over ArrayOfRDWaveforms
-
-
-#=
-
-struct GenericRadSigFilter{
-    F<:Function,
-    FOT<:Function,
-    FOL<:Function,
-    FOD<:Function,
-    FOA<:Function
-} <: AbstractRadSigFilter
-    f_apply!::F
-    f_output_type::FOT
-    f_output_length::FOL
-    f_output_dt::FOD
-    f_output_time_axis::FOA
-end
-
-
-GenericRadSigFilter(
-    f_apply!::Function;
-    f_output_type::Function = identity,
-    f_output_length::Function = identity,
-    f_output_dt::Function = identity,
-    f_output_time_axis::Function = identity  
-) = GenericRadSigFilter{typeof(f_apply!), typeof(f_output_type), typeof(f_output_length), typeof(f_output_dt), typeof(f_output_time_axis)}(
-    f_apply!, f_output_type, f_output_length, f_output_dt, f_output_time_axis
-)
-
-
-flt_output_smpltype(flt::GenericRadSigFilter, input_smpltype::Type{<:RealQuantity}) = flt.f_output_type(input_smpltype)
-
-flt_output_length(flt::GenericRadSigFilter, input_length::Integer) = flt.f_output_length(input_length)
-
-flt_output_time_axis(flt::GenericRadSigFilter, time::Range) = flt.f_output_time_axis(time)
-
-
-struct GenericRadSigFilterInstance{
-    F<:Function,
-    TIN<:RealQuantity,
-    TOUT<:RealQuantity,
-    TIDT<:RealQuantity,
-    TODT<:RealQuantity,
-    FOA<:Function
-} <: AbstractRadSigFilter
-    f_apply!::F
-    input_length::Integer
-    output_length::Integer
-    input_dt::TIDT
-    output_dt::TODT
-    f_output_time_axis::FOA
-end
-
-function fltinstance(
-    flt::GenericRadSigFilter,
-    input_smpltype::Type{<:RealQuantity},
-    input_length::Integer,
-    input_dt::RealQuantity
-)
-    output_smpltype = flt_output_smpltype(flt, input_smpltype)
-    output_length = flt_output_length(flt, input_length)
-    output_dt = flt_output_length(flt, input_dt)
-
-    GenericRadSigFilterInstance{
-        typeof(flt.f_apply!), input_smpltype, output_smpltype, typeof(output_length),
-        typeof(output_dt), typeof(flt.f_output_time_axis)
-    }(flt.f_apply!, input_length, output_length, input_dt, output_dt, flt.f_output_time_axis)
-end
-
-rdfilt!(output::AbstractSamples, flt::GenericRadSigFilter, input::AbstractSamples) = flt.f_apply!(output, input)
-
 =#
