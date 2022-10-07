@@ -37,7 +37,10 @@ using RadiationDetectorSignals, ArraysOfArrays, FillArrays
     @test @inferred(flt(x)) ≈ y_ref
 
     @test @inferred(rdfilt(fi, wf_x)) ≈ wf_y_ref
-    @test @inferred(rdfilt(flt, x)) ≈ y_ref
+    @test @inferred(rdfilt(flt, wf_x)) ≈ wf_y_ref
+
+    @test @inferred(fi(wf)) ≈ wf_y_ref
+    @test @inferred(flt(wf)) ≈ wf_y_ref
 
     @test isapprox(@inferred(inverse(flt)(y)), x, rtol = 1e-3)
 end
