@@ -93,6 +93,6 @@ export elsmplinfo
 
 elsmplinfo(smpls::AbstractArray{<:AbstractSamples{T}}) where T = SamplingInfo{T}(_inneraxes(smpls, 1))
 
-elsmplinfo(wfs::AbstractArray{<:RDWaveform{T,U}}) where {T,U} = SamplingInfo{T}(_uniqueelem(map(wf -> wf.time, wfs)))
+elsmplinfo(wfs::AbstractArray{<:RDWaveform{T,U}}) where {T,U} = SamplingInfo{U}(_uniqueelem(map(wf -> wf.time, wfs)))
 
-elsmplinfo(wfs::ArrayOfRDWaveforms{T,U}) where {T,U} = SamplingInfo{T}(_uniqueelem(wfs.time))
+elsmplinfo(wfs::ArrayOfRDWaveforms{T,U}) where {T,U} = SamplingInfo{U}(_uniqueelem(wfs.time))
