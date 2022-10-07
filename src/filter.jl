@@ -121,6 +121,9 @@ input, resp. input characteristics.
 function fltinstance end
 export fltinstance
 
+fltinstance(flt::AbstractRadSigFilter, si::SamplingInfo{T}) where T = throw(ArgumentError("fltinstance not defined for type $(nameof(typeof(flt)))"))
+fltinstance(f, si::SamplingInfo{T}) where T = f
+
 #=
 ToDo: Do we want these convenience methods?
 fltinstance(flt::AbstractRadSigFilter, input::AbstractSamples) = fltinstance(flt, smplinfo(input))

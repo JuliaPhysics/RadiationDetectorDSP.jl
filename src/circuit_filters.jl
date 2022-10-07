@@ -359,7 +359,7 @@ end
 
 export SimpleCSAFilter
 
-fltinstance(flt::SimpleCSAFilter, input) = fltinstance(_lower_flt(flt), input)
+fltinstance(flt::SimpleCSAFilter, fi::SamplingInfo) = fltinstance(_lower_flt(flt), fi)
 
 InverseFunctions.inverse(flt::SimpleCSAFilter) = inverse(_lower_flt(flt))
 

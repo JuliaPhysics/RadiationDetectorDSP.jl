@@ -3,7 +3,6 @@
 using RadiationDetectorDSP
 using Test
 
-using Random, LinearAlgebra, InverseFunctions
 using Unitful
 using RadiationDetectorSignals, ArraysOfArrays, FillArrays
 
