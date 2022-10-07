@@ -36,6 +36,7 @@ import ChainRulesCore
 
 
 include("util.jl")
+include("array_utils.jl")
 include("samples.jl")
 include("legacy/filters.jl")
 include("legacy/trapezoidal_filter.jl")
