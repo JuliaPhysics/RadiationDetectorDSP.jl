@@ -21,15 +21,15 @@ end
 
 export RCFilter
 
-fltinstance(flt::RCFilter, fi::SamplingInfo) = fltinstance(BiquadFilter(flt), fi)
+fltinstance(flt::RCFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
 
 InverseFunctions.inverse(flt::RCFilter) = InvRCFilter(flt.rc)
 
-function BiquadFilter(flt::RCFilter)
+function FirstOrderIIR(flt::RCFilter)
     RC = float(flt.rc)
     α = 1 / (1 + RC)
     T = typeof(α)
-    BiquadFilter((α, T(0), T(0)), (α - T(1), T(0)))
+    FirstOrderIIR((α, T(0)), (α - T(1),))
 end
 
 
@@ -54,15 +54,15 @@ end
 
 export InvRCFilter
 
-fltinstance(flt::InvRCFilter, fi::SamplingInfo) = fltinstance(BiquadFilter(flt), fi)
+fltinstance(flt::InvRCFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
 
 InverseFunctions.inverse(flt::InvRCFilter) = RCFilter(flt.rc)
 
-function BiquadFilter(flt::InvRCFilter)
+function FirstOrderIIR(flt::InvRCFilter)
     RC = float(flt.rc)
     k = 1 + RC
     T = typeof(k)
-    BiquadFilter((k, T(1) - k, T(0)), (T(0), T(0)))
+    FirstOrderIIR((k, T(1) - k), (T(0),))
 end
 
 
@@ -87,15 +87,14 @@ end
 
 export CRFilter
 
-fltinstance(flt::CRFilter, fi::SamplingInfo) = fltinstance(BiquadFilter(flt), fi)
+fltinstance(flt::CRFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
 
 InverseFunctions.inverse(flt::CRFilter) = InvCRFilter(flt.cr)
 
-function BiquadFilter(flt::CRFilter)
+function FirstOrderIIR(flt::CRFilter)
     CR = float(flt.cr)
     α = CR / (CR + 1)
-    T = typeof(α)
-    BiquadFilter((α, -α, T(0)), (-α, T(0)))
+    FirstOrderIIR((α, -α), (-α,))
 end
 
 
@@ -120,15 +119,15 @@ end
 
 export InvCRFilter
 
-fltinstance(flt::InvCRFilter, fi::SamplingInfo) = fltinstance(BiquadFilter(flt), fi)
+fltinstance(flt::InvCRFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
 
 InverseFunctions.inverse(flt::InvCRFilter) = CRFilter(flt.cr)
 
-function BiquadFilter(flt::InvCRFilter)
+function FirstOrderIIR(flt::InvCRFilter)
     CR = float(flt.cr)
-    α = inv(1 + CR)
-    k = 1 + inv(CR)
-    Biquad((k, k * (α - 1), 0), (-1, 0))
+    k = 1 + inv(CR) # equivalent to k = -1 / (α - 1)
+    T = typeof(k)
+    FirstOrderIIR((k, T(-1)), (T(-1),))
 end
 
 
@@ -152,15 +151,15 @@ end
 
 export ModCRFilter
 
-fltinstance(flt::ModCRFilter, fi::SamplingInfo) = fltinstance(BiquadFilter(flt), fi)
+fltinstance(flt::ModCRFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
 
 InverseFunctions.inverse(flt::ModCRFilter) = InvModCRFilter(flt.cr)
 
-function BiquadFilter(flt::ModCRFilter)
+function FirstOrderIIR(flt::ModCRFilter)
     CR = float(flt.cr)
-    α = CR / (CR + 1)
-    T = typeof(α)
-    BiquadFilter((T(1), T(-1), T(0)), (-α, T(0)))
+    k = CR / (CR + 1)
+    T = typeof(k)
+    FirstOrderIIR((T(1), T(-1)), (-k,))
 end
 
 
@@ -184,15 +183,15 @@ end
 
 export InvModCRFilter
 
-fltinstance(flt::InvModCRFilter, fi::SamplingInfo) = fltinstance(BiquadFilter(flt), fi)
+fltinstance(flt::InvModCRFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
 
 InverseFunctions.inverse(flt::InvModCRFilter) = ModCRFilter(flt.cr)
 
-function BiquadFilter(flt::InvModCRFilter)
+function FirstOrderIIR(flt::InvModCRFilter)
     CR = float(flt.cr)
-    k = CR / (CR + 1)
-    T = typeof(k)
-    Biquad(T(1), T(-1), T(0), -k, T(0))
+    α = 1 / (1 + CR)
+    T = typeof(α)
+    FirstOrderIIR((T(1), α - T(1)), (-1,))
 end
 
 
@@ -217,14 +216,14 @@ end
 
 export IntegratorFilter
 
-fltinstance(flt::IntegratorFilter, fi::SamplingInfo) = fltinstance(BiquadFilter(flt), fi)
+fltinstance(flt::IntegratorFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
 
 InverseFunctions.inverse(flt::IntegratorFilter) = DifferentiatorFilter(flt.gain)
 
-function BiquadFilter(flt::IntegratorFilter)
+function FirstOrderIIR(flt::IntegratorFilter)
     g = flt.gain
     T = typeof(g)
-    BiquadFilter((g, T(0), T(0)), (T(-1), T(0)))
+    FirstOrderIIR((g, T(0)), (T(-1)))
 end
 
 
@@ -249,14 +248,14 @@ end
 
 export DifferentiatorFilter
 
-fltinstance(flt::DifferentiatorFilter, fi::SamplingInfo) = fltinstance(BiquadFilter(flt), fi)
+fltinstance(flt::DifferentiatorFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
 
 InverseFunctions.inverse(flt::DifferentiatorFilter) = IntegratorFilter(flt.gain)
 
-function BiquadFilter(flt::DifferentiatorFilter)
+function FirstOrderIIR(flt::DifferentiatorFilter)
     k = flt.gain
     T = typeof(g)
-    BiquadFilter((k, -k, T(0)), (T(0), T(0)))
+    FirstOrderIIR((k, -k), (T(0)))
 end
 
 
@@ -283,16 +282,16 @@ end
 
 export IntegratorCRFilter
 
-fltinstance(flt::IntegratorCRFilter, fi::SamplingInfo) = fltinstance(BiquadFilter(flt), fi)
+fltinstance(flt::IntegratorCRFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
 
-InverseFunctions.inverse(flt::IntegratorCRFilter) = inverse(BiquadFilter(flt))
+InverseFunctions.inverse(flt::IntegratorCRFilter) = inverse(FirstOrderIIR(flt))
 
-function BiquadFilter(flt::IntegratorCRFilter)
+function FirstOrderIIR(flt::IntegratorCRFilter)
     CR = float(flt.cr)
     α = 1 / (1 + CR)
     T = typeof(α)
     g = T(flt.gain)
-    BiquadFilter((g, -α, T(0)), (α - 1, T(0)))
+    FirstOrderIIR((g, -α), (α - T(1)))
 end
 
 
@@ -319,16 +318,16 @@ end
 
 export IntegratorModCRFilter
 
-fltinstance(flt::IntegratorModCRFilter, fi::SamplingInfo) = fltinstance(BiquadFilter(flt), fi)
+fltinstance(flt::IntegratorModCRFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
 
-InverseFunctions.inverse(flt::IntegratorModCRFilter) = inverse(BiquadFilter(flt))
+InverseFunctions.inverse(flt::IntegratorModCRFilter) = inverse(FirstOrderIIR(flt))
 
-function BiquadFilter(flt::IntegratorModCRFilter)
+function BiquadFirstOrderIIRFilter(flt::IntegratorModCRFilter)
     CR = float(flt.cr)
     α = 1 / (1 + CR)
     T = typeof(α)
     g = T(flt.gain)
-    BiquadFilter((g, T(0), T(0)), (α - 1, T(0)))
+    FirstOrderIIR((g, T(0)), (α - T(1)))
 end
 
 
@@ -367,4 +366,14 @@ function _lower_flt(flt::SimpleCSAFilter)
     flt1 = RCFilter(rc = flt.tau_rise)
     flt2 = IntegratorCRFilter(cr = flt.tau_decay, gain = flt.gain)
     FunctionChain((flt1, flt2))
+end
+
+fltinstance(flt::SimpleCSAFilter, fi::SamplingInfo) = fltinstance(BiquadFilter(flt), fi)
+
+InverseFunctions.inverse(flt::SimpleCSAFilter) = inverse(BiquadFilter(flt))
+
+function BiquadFilter(flt::SimpleCSAFilter)
+    flt1 = RCFilter(rc = flt.tau_rise)
+    flt2 = IntegratorCRFilter(cr = flt.tau_decay, gain = flt.gain)
+    flt1 ∘ flt2
 end

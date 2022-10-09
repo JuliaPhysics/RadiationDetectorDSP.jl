@@ -19,7 +19,7 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
     ))
     wf_x = wfs_x[1]
     x = wf_x.signal
-    # From DSP.filt(DSP.Biquad(flt), x):
+    # From DSP.filt(DSP.Biquad(flt.b_01..., 0., flt.a_1..., 0.), x):
     y_ref = Float32[0.1, 0.255, 0.379, 0.4782, 0.55756, 0.621048, 0.6718384, 0.7124707, 0.7449766, 0.77098125, 0.791785, 0.808428, 0.8217424, 0.7323939, 0.58591515, 0.46873212, 0.3749857, 0.29998854, 0.23999085, 0.19199267, 0.15359414, 0.12287531, 0.09830025, 0.2786402, 0.57291216, 0.8083297, 0.9966638, 1.147331, 1.2678648, 1.3642919, 1.4414334, 1.5031468, 1.5525174, 1.592014, 1.6236112, 1.648889, 1.6691111, 1.6852889, 1.6982311, 1.7085849, 1.7168679, 1.7234943, 1.7287955, 1.7330364, 1.7364291, 1.7391433, 1.7413146]
     wf_y_ref = RDWaveform(wf_x.time, y_ref)
 
@@ -61,6 +61,12 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
     @test @inferred(flt(wf_x)) ≈ wf_y_ref
 
     @test isapprox(@inferred(inverse(flt)(y)), x, rtol = 1e-3)
+
+    @test @inferred(BiquadFilter(flt)) isa BiquadFilter
+    @test BiquadFilter(flt)(x) ≈ flt(x)
+
+    @test @inferred(DSP.Biquad(flt)) isa DSP.Biquad
+    @test DSP.filt(DSP.Biquad(flt), x) ≈ flt(x)
 
     Y = similar(X)
     fill!.(Y, NaN)
