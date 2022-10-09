@@ -358,16 +358,6 @@ end
 
 export SimpleCSAFilter
 
-fltinstance(flt::SimpleCSAFilter, fi::SamplingInfo) = fltinstance(_lower_flt(flt), fi)
-
-InverseFunctions.inverse(flt::SimpleCSAFilter) = inverse(_lower_flt(flt))
-
-function _lower_flt(flt::SimpleCSAFilter)
-    flt1 = RCFilter(rc = flt.tau_rise)
-    flt2 = IntegratorCRFilter(cr = flt.tau_decay, gain = flt.gain)
-    FunctionChain((flt1, flt2))
-end
-
 fltinstance(flt::SimpleCSAFilter, fi::SamplingInfo) = fltinstance(BiquadFilter(flt), fi)
 
 InverseFunctions.inverse(flt::SimpleCSAFilter) = inverse(BiquadFilter(flt))
