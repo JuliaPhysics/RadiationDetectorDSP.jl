@@ -4,7 +4,11 @@
 """
     struct RCFilter{T<:RealQuantity} <: AbstractRadIIRFilter
 
-An RC-filter. It's inverse is [`InvRCFilter`](@ref).
+An RC-filter.
+
+The inverse filter is [`InvCRFilter`](@ref), but note that this is unstable
+in the presence of additional noise and so will typically not be useful to
+deconvolve signals in practical applications.
 
 Constructors:
 
@@ -72,6 +76,9 @@ end
 
 An RC-filter. It's inverse is [`InvCRFilter`](@ref).
 
+The inverse filter is [`InvCRFilter`](@ref), this is typically stable even in
+the presence of additional noise.
+
 Constructors:
 
 * ```$(FUNCTIONNAME)(fields...)```
@@ -134,7 +141,10 @@ end
 """
     struct ModCRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
 
-A modified CR-filter. It's inverse is [`InvModCRFilter`](@ref).
+A modified CR-filter.
+
+The inverse filter is [`InvModCRFilter`](@ref), this is typically stable even in
+the presence of additional noise.
 
 Constructors:
 
@@ -335,7 +345,12 @@ end
 """
     struct SimpleCSAFilter{T<:RealQuantity} <: AbstractRadIIRFilter
 
-A modified CR-filter. The filter has an inverse.
+A modified CR-filter.
+
+This filter has an inverse, but it is very unstable in the presence of
+additional noise if `tau_rise` is not zero. Even if `tau_rise` is zero
+the inverse will still amplify noise, so it should be used very
+carefully when deconvolving signals in practical applications.
 
 Constructors:
 

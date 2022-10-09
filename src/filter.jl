@@ -45,18 +45,14 @@ Subtypes of `AbstractRadSigFilter` must implement
 fltinstance(flt::AbstractRadSigFilter, si::SamplingInfo)::[`AbstractRadSigFilterInstance`](@ref)
 ```
 
-Invertible filters must also implement
+Invertible filters should also implement
 
 * `InverseFunctions.inverse(flt::SomeFilter)`
 
-The default methods for
-
-* `RadiationDetectorDSP.rdfilt(flt::AbstractRadSigFilter, input)`
-* `RadiationDetectorDSP.rdfilt!(output, flt::AbstractRadSigFilter, input)`
-* `RadiationDetectorDSP.bc_rdfilt(flt::AbstractRadSigFilter, inputs)`
-
-should not be overloaded for `AbstractRadSigFilter`. Instead, overload these
-methods for the filter instance type of `flt`.
+Not that while a filter may have an inverse, it may (often depending on the
+filter paramters) be very unstable in the presence of additional noise. So
+the inverse may be not be useful to deconvolve signals in practical
+applications.
 """
 abstract type AbstractRadSigFilter{FT<:FilteringType} <: Function end
 export AbstractRadSigFilter
