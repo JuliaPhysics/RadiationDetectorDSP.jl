@@ -44,10 +44,10 @@ end
 
 
 function Base.:(∘)(f::FirstOrderIIR, g::FirstOrderIIR)
-    f_b0, f_b1 = f.b01
-    f_a1 = f.a1[1]
-    g_b0, g_b1 = g.b01
-    g_a1 = g.a1[1]
+    f_b0, f_b1 = f.b_01
+    f_a1 = f.a_1[1]
+    g_b0, g_b1 = g.b_01
+    g_a1 = g.a_1[1]
 
     b0 = f_b0 * g_b0
     b1 = f_b0 * g_b1 + f_b1 * g_b0

@@ -62,6 +62,11 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
     @test isapprox(@inferred(inverse(flt)(y)), x, rtol = 1e-3)
 
+    flt2 = FirstOrderIIR((0.2, -0.5), (0.42,))
+
+    @test @inferred((flt1∘flt2)) isa BiquadFilter
+    @test @inferred((flt1∘flt2)(x)) ≈ flt1(flt2(x))
+
     @test @inferred(BiquadFilter(flt)) isa BiquadFilter
     @test BiquadFilter(flt)(x) ≈ flt(x)
 
