@@ -4,7 +4,7 @@ using RadiationDetectorDSP
 using Test
 
 
-@testset "Filters" begin
+@testset "circuit_filters" begin
     plot(args...) = nothing
     plot!(args...) = nothing
     hline!(args...) = nothing
