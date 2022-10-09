@@ -16,20 +16,6 @@ using Statistics
 
     step_signal = vcat(fill(0.0, 10), fill(1.0, 30))
 
-    @testset "SimpleCSAFilter" begin
-        x = current_signal
-        plot(cumsum(x))
-        flt = SimpleCSAFilter(tau_rise = 20, tau_decay = 500)
-        output = flt(x)
-        plot!(output)
-        output_deconv = inverse(CRFilter(τ_decay))(output)
-        plot!(output_deconv)
-        tail = output_deconv[150:end]
-        # Tail of reco should be flat:
-        @test var(tail) < 1e-5
-        InverseFunctions.test_inverse(flt, x)
-    end
-
     @testset "RCFilter" begin
         x = step_signal
         plot(x)
@@ -78,6 +64,20 @@ using Statistics
         plot!(inverse(flt)(output))
         @test inverse(flt) isa DifferentiatorFilter
         @test inverse(inverse(flt)) == flt
+        InverseFunctions.test_inverse(flt, x)
+    end
+
+    @testset "SimpleCSAFilter" begin
+        x = current_signal
+        plot(cumsum(x))
+        flt = SimpleCSAFilter(tau_rise = 20, tau_decay = 500)
+        output = flt(x)
+        plot!(output)
+        output_deconv = inverse(CRFilter(τ_decay))(output)
+        plot!(output_deconv)
+        tail = output_deconv[150:end]
+        # Tail of reco should be flat:
+        @test var(tail) < 1e-5
         InverseFunctions.test_inverse(flt, x)
     end
 end
