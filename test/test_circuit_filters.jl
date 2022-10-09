@@ -78,6 +78,5 @@ using Statistics
         tail = output_deconv[150:end]
         # Tail of reco should be flat:
         @test var(tail) < 1e-5
-        InverseFunctions.test_inverse(flt, x)
     end
 end
