@@ -291,7 +291,7 @@ function FirstOrderIIR(flt::IntegratorCRFilter)
     α = 1 / (1 + CR)
     T = typeof(α)
     g = T(flt.gain)
-    FirstOrderIIR((g, -α), (α - T(1)))
+    FirstOrderIIR((g, -α), (α - T(1),))
 end
 
 
@@ -365,5 +365,5 @@ InverseFunctions.inverse(flt::SimpleCSAFilter) = inverse(BiquadFilter(flt))
 function BiquadFilter(flt::SimpleCSAFilter)
     flt1 = RCFilter(rc = flt.tau_rise)
     flt2 = IntegratorCRFilter(cr = flt.tau_decay, gain = flt.gain)
-    flt1 ∘ flt2
+    FirstOrderIIR(flt1) ∘ FirstOrderIIR(flt2)
 end
