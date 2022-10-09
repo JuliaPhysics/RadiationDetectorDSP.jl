@@ -43,6 +43,7 @@ include("legacy/trapezoidal_filter.jl")
 include("legacy/generators.jl")
 include("filter.jl")
 include("biquad_filter.jl")
+include("first_order_iir.jl")
 include("circuit_filters.jl")
 include("zac.jl")
 
