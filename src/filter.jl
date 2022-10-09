@@ -32,7 +32,7 @@ export NonlinearFiltering
 
 
 """
-    abstract type AbstractRadSigFilter{FT<:FilteringType}
+    abstract type AbstractRadSigFilter{FT<:FilteringType} <: Function
 
 Abstract type for signal filters.
 
@@ -58,13 +58,18 @@ The default methods for
 should not be overloaded for `AbstractRadSigFilter`. Instead, overload these
 methods for the filter instance type of `flt`.
 """
-abstract type AbstractRadSigFilter{FT<:FilteringType} end
+abstract type AbstractRadSigFilter{FT<:FilteringType} <: Function end
 export AbstractRadSigFilter
 
-(flt::AbstractRadSigFilter)(input) = rdfilt(flt, input)
+(flt::AbstractRadSigFilter)(input) = rdfilt(fltinstance(flt, smplinfo(input)), input)
 
 # ToDo: Support mutating broadcasts (needs a bc_rdfilt! that takes chained filters into account)
-Base.Broadcast.broadcasted(flt::AbstractRadSigFilter, inputs) = bc_rdfilt(flt, Base.materialize(inputs))
+function Base.Broadcast.broadcasted(flt::AbstractRadSigFilter, inputs)
+    X = Base.materialize(inputs)
+    fi = fltinstance(flt, elsmplinfo(inputs))
+    bc_rdfilt(fi, inputs)
+end
+
 
 
 """
@@ -106,10 +111,10 @@ The default methods that operate on `RadiationDetectorSignals.RDWaveform`s requi
 abstract type AbstractRadSigFilterInstance{FT<:FilteringType} end
 export AbstractRadSigFilterInstance
 
-(fi::AbstractRadSigFilterInstance)(input) = rdfilt(fi, input)
-
-# ToDo: Support mutating broadcasts (needs a bc_rdfilt! that takes chained filters into account)
-Base.Broadcast.broadcasted(fi::AbstractRadSigFilterInstance, inputs) = bc_rdfilt(fi, Base.materialize(inputs))
+# # ToDo: Should filter instances be callable?
+#(fi::AbstractRadSigFilterInstance)(input) = rdfilt(fltinstance(flt, smplinfo(input)), input)
+## ToDo: Support mutating broadcasts (needs a bc_rdfilt! that takes chained filters into account)
+#Base.Broadcast.broadcasted(fi::AbstractRadSigFilterInstance, inputs) = bc_rdfilt(fi, Base.materialize(inputs))
 
 
 """
@@ -122,7 +127,6 @@ function fltinstance end
 export fltinstance
 
 fltinstance(flt::AbstractRadSigFilter, si::SamplingInfo{T}) where T = throw(ArgumentError("fltinstance not defined for type $(nameof(typeof(flt)))"))
-fltinstance(f, si::SamplingInfo{T}) where T = f
 
 #=
 ToDo: Do we want these convenience methods?
@@ -132,7 +136,6 @@ fltinstance(flt::AbstractRadSigFilter, input::RDWaveform) = fltinstance(flt, smp
 
 
 """
-    rdfilt!(output, flt::AbstractRadSigFilter, input)
     rdfilt!(output, fi::AbstractRadSigFilterInstance, input)
 
 Apply filter `flt` or filter instance `fi` to signal `input` and store the
@@ -141,22 +144,22 @@ filtered signal in `output`. Return `output`.
 function dfilt! end
 export rdfilt!
 
-rdfilt!(output, flt::AbstractRadSigFilter, input) = rdfilt!(output, fltinstance(flt, smplinfo(input)), input)
+# ToDo: Do we want this?
+# rdfilt!(output, flt::AbstractRadSigFilter, input) = rdfilt!(output, fltinstance(flt, smplinfo(input)), input)
 
 
 """
-    rdfilt(flt::AbstractRadSigFilter, input)
     rdfilt(fi::AbstractRadSigFilterInstance, input)
 
-Apply filter `flt` or filter instance `fi` to signal `input`, return the
-filtered signal.
+Apply filter instance `fi` to signal `input`, return the filtered signal.
 
 Returns `output`.
 """
 function rdfilt end
 export rdfilt
 
-rdfilt(flt::AbstractRadSigFilter, input) = rdfilt(fltinstance(flt, smplinfo(input)), input)
+# ToDo: Do we want this?
+# rdfilt(flt::AbstractRadSigFilter, input) = rdfilt(fltinstance(flt, smplinfo(input)), input)
 
 function rdfilt(fi::AbstractRadSigFilterInstance, input::AbstractSamples)
     T_out = flt_output_smpltype(fi)
@@ -186,12 +189,12 @@ end
     bc_rdfilt(flt::AbstractRadSigFilter, input)
     bc_rdfilt(fi::AbstractRadSigFilterInstance, input)
 
-Broadcast filter `flt` or filter instance `fi` over signals `input`, return the
-filtered signals.
+Broadcast filter instance `fi` over signals `input`, return the filtered
+signals.
 """
 function bc_rdfilt end
 
-bc_rdfilt(flt::AbstractRadSigFilter, inputs) = bc_rdfilt(fltinstance(flt, elsmplinfo(inputs)), inputs)
+# bc_rdfilt(flt::AbstractRadSigFilter, inputs) = bc_rdfilt(fltinstance(flt, elsmplinfo(inputs)), inputs)
 
 function bc_rdfilt(fi::AbstractRadSigFilterInstance, inputs)
     broadcast((input -> rdfilt(fi, input)), inputs)
@@ -219,7 +222,6 @@ end
 
 
 """
-    bc_rdfilt!(outputs, flt::AbstractRadSigFilter, inputs)
     bc_rdfilt!(outputs, fi::AbstractRadSigFilterInstance, inputs)
 
 Broadcast filter `flt` or filter instance `fi` over signals `inputs`, storing
@@ -231,7 +233,7 @@ Returns `outputs`.
 """
 function bc_rdfilt! end
 
-bc_rdfilt!(outputs, flt::AbstractRadSigFilter, inputs) = bc_rdfilt!(outputs, fltinstance(flt, elsmplinfo(inputs)), inputs)
+# bc_rdfilt!(outputs, flt::AbstractRadSigFilter, inputs) = bc_rdfilt!(outputs, fltinstance(flt, elsmplinfo(inputs)), inputs)
 
 function bc_rdfilt!(
     outputs::AbstractVector{<:AbstractSamples},

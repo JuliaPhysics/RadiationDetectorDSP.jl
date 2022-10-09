@@ -47,6 +47,11 @@ function InverseFunctions.inverse(flt::BiquadFilter)
 end
 
 
+function DSP.Biquad(flt::BiquadFilter{T}) where {T<:RealQuantity}
+    DSP.Biquad(map(T, flt.b_012)..., map(T, flt.a_12)...)
+end
+
+
 
 struct BiquadFilterInstance{T} <: AbstractRadSigFilterInstance{LinearFiltering}
     b_012::NTuple{3,T}
@@ -62,7 +67,7 @@ end
     s2::T = zero(T) # s_init[2]
     s3::T = zero(T)
 
-    # @assert eachindex(X) == eachindex(Y)
+    #!!! @assert eachindex(X) == eachindex(Y)
 
     @inbounds @simd for i in eachindex(X)
         x_i = T(X[i])
@@ -87,8 +92,3 @@ flt_input_smpltype(fi::BiquadFilterInstance{T}) where T = T
 flt_output_length(fi::BiquadFilterInstance) = flt_input_length(fi)
 flt_input_length(fi::BiquadFilterInstance) = fi.n
 flt_output_time_axis(fi::BiquadFilterInstance, time::AbstractVector{<:RealQuantity}) = time
-
-
-function DSP.Biquad(flt::BiquadFilter{T}) where {T<:RealQuantity}
-    DSP.Biquad(map(T, flt.b_012)..., map(T, flt.a_12)...)
-end
