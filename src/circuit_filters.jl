@@ -191,7 +191,7 @@ function FirstOrderIIR(flt::InvModCRFilter)
     CR = float(flt.cr)
     α = 1 / (1 + CR)
     T = typeof(α)
-    FirstOrderIIR((T(1), α - T(1)), (-1,))
+    FirstOrderIIR((T(1), α - T(1)), (T(-1),))
 end
 
 
@@ -218,12 +218,12 @@ export IntegratorFilter
 
 fltinstance(flt::IntegratorFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
 
-InverseFunctions.inverse(flt::IntegratorFilter) = DifferentiatorFilter(flt.gain)
+InverseFunctions.inverse(flt::IntegratorFilter) = DifferentiatorFilter(inv(flt.gain))
 
 function FirstOrderIIR(flt::IntegratorFilter)
     g = flt.gain
     T = typeof(g)
-    FirstOrderIIR((g, T(0)), (T(-1)))
+    FirstOrderIIR((g, T(0)), (T(-1),))
 end
 
 
@@ -250,12 +250,12 @@ export DifferentiatorFilter
 
 fltinstance(flt::DifferentiatorFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
 
-InverseFunctions.inverse(flt::DifferentiatorFilter) = IntegratorFilter(flt.gain)
+InverseFunctions.inverse(flt::DifferentiatorFilter) = IntegratorFilter(inv(flt.gain))
 
 function FirstOrderIIR(flt::DifferentiatorFilter)
-    k = flt.gain
+    g = flt.gain
     T = typeof(g)
-    FirstOrderIIR((k, -k), (T(0)))
+    FirstOrderIIR((g, -g), (T(0),))
 end
 
 

@@ -11,63 +11,73 @@ using Statistics
     plot!(args...) = nothing
     hline!(args...) = nothing
 
+    t_drift = 40
+    current_signal = vcat(fill(0.0, 10), fill(1.0 / t_drift, t_drift), fill(0.0, 200))
+
+    step_signal = vcat(fill(0.0, 10), fill(1.0, 30))
+
     @testset "SimpleCSAFilter" begin
-        t_drift = 40
-        current_signal = vcat(fill(0.0, 10), fill(1.0 / t_drift, t_drift), fill(0.0, 200))
-        plot(cumsum(current_signal))
+        x = current_signal
+        plot(cumsum(x))
         flt = SimpleCSAFilter(tau_rise = 20, tau_decay = 500)
-        output = flt(current_signal)
+        output = flt(x)
         plot!(output)
         output_deconv = inverse(CRFilter(τ_decay))(output)
         plot!(output_deconv)
         tail = output_deconv[150:end]
         # Tail of reco should be flat:
         @test var(tail) < 1e-5
-        output_full_deconv = inverse(flt)(output)
-        plot!(output_full_deconv)
-        @test output_full_deconv ≈ current_signal
+        InverseFunctions.test_inverse(flt, x)
     end
 
-    @testset "rc_filter" begin
-        RC = 20
-        x = vcat(fill(0.0, 10), fill(1.0, 40))
+    @testset "RCFilter" begin
+        x = step_signal
         plot(x)
-        flt = RCFilter(RC)
+        flt = RCFilter(rc = 20)
         output = flt(x)
-        # output = df1_filt(rc_filter(RC), X)
         plot!(output)
-        output_deconv = inverse(flt)(output)
-        plot!(output_deconv)
+        plot!(inverse(flt)(output))
         hline!([1 - exp(-1)])
-        @test x ≈ output_deconv
+        @test inverse(flt) isa InvRCFilter
+        @test inverse(inverse(flt)) == flt
+        InverseFunctions.test_inverse(flt, x)
     end
 
-    @testset "cr_filter" begin
-        CR = 10
+    @testset "CRFilter" begin
         x = vcat(fill(0.0, 10), fill(1.0, 30))
         plot(x)
-        flt = CRFilter(CR)
+        flt = CRFilter(cr = 10)
         output = flt(x)
-        # output = df1_filt(cr_filter(RC), X)
         plot!(output)
-        output_deconv = inverse(flt)(output)
-        # output_deconv = df1_filt(inv_cr_filter(RC), output)
-        plot!(output_deconv)
+        plot!(inverse(flt)(output))
         hline!([exp(-1)])
-        @test x ≈ output_deconv
+        @test inverse(flt) isa InvCRFilter
+        @test inverse(inverse(flt)) == flt
+        InverseFunctions.test_inverse(flt, x)
     end
 
-    @testset "crmod_filter" begin
-        RC = 10
-        X = vcat(fill(0.0, 10), fill(1.0, 30))
-        plot(X)
-        output = filt(crmod_filter(RC), X)
-        # output = df1_filt(crmod_filter(RC), X)
+    @testset "ModCRFilter" begin
+        x = vcat(fill(0.0, 10), fill(1.0, 30))
+        plot(x)
+        flt = ModCRFilter(cr = 10)
+        output = flt(x)
         plot!(output)
-        output_deconv = filt(inv_crmod_filter(RC), output)
-        # output_deconv = df1_filt(inv_crmod_filter(RC), output)
-        plot!(output_deconv)
+        plot!(inverse(flt)(output))
         hline!([exp(-1)])
-        @test X ≈ output_deconv
+        @test inverse(flt) isa InvModCRFilter
+        @test inverse(inverse(flt)) == flt
+        InverseFunctions.test_inverse(flt, x)
+    end
+
+    @testset "IntegratorFilter" begin
+        x = current_signal
+        plot(x)
+        flt = IntegratorFilter(gain = 2.0)
+        output = flt(x)
+        plot!(output)
+        plot!(inverse(flt)(output))
+        @test inverse(flt) isa DifferentiatorFilter
+        @test inverse(inverse(flt)) == flt
+        InverseFunctions.test_inverse(flt, x)
     end
 end
