@@ -4,7 +4,7 @@
 """
     struct RCFilter{T<:RealQuantity} <: AbstractRadIIRFilter
 
-An RC-filter.
+A first-order RC lowpass filter.
 
 The inverse filter is [`InvCRFilter`](@ref), but note that this is unstable
 in the presence of additional noise and so will typically not be useful to
@@ -74,7 +74,7 @@ end
 """
     struct CRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
 
-An RC-filter. It's inverse is [`InvCRFilter`](@ref).
+A first-order CR highpass filter.
 
 The inverse filter is [`InvCRFilter`](@ref), this is typically stable even in
 the presence of additional noise.
@@ -141,7 +141,13 @@ end
 """
     struct ModCRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
 
-A modified CR-filter.
+A first-order CR highpass filter, modified for full-amplitude step-signal
+response.
+
+The resonse of the standard digital [`CRFilter`](@ref) will not recover the
+full amplitude of a digital step stignal since a step from one sample to the
+still has a finite rise time. This version of a CR filter compensates for
+this loss in amplitude, so it effectively treats a step as having
 
 The inverse filter is [`InvModCRFilter`](@ref), this is typically stable even in
 the presence of additional noise.
@@ -345,11 +351,23 @@ end
 """
     struct SimpleCSAFilter{T<:RealQuantity} <: AbstractRadIIRFilter
 
-A modified CR-filter.
+Simulates the current-signal response of a charge-sensitive preamplifier with
+resistive reset, the output is a charge signal.
 
-This filter has an inverse, but it is very unstable in the presence of
-additional noise if `tau_rise` is not zero. Even if `tau_rise` is zero
-the inverse will still amplify noise, so it should be used very
+It is equivalent to the composition
+
+```julia
+CRFilter(cr = tau_decay) ∘
+Integrator(gain = gain) ∘
+RCFilter(rc = tau_rise)
+```
+
+and maps to a single `BiquadFilter`.
+
+This filter has an inverse, but the inverse is very unstable in the presence
+of additional noise if `tau_rise` is not zero (since the inverse of an
+RC-filter is unstable under noise). Even if `tau_rise` is zero the inverse
+will still amplify noise (since it differentiates), so it should be used very
 carefully when deconvolving signals in practical applications.
 
 Constructors:
