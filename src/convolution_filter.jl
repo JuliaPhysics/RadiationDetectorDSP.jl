@@ -75,11 +75,11 @@ abstract type AbstractConvFilterInstance{T<:Real} <: AbstractRadSigFilterInstanc
 
 flt_output_smpltype(fi::AbstractConvFilterInstance) = flt_input_smpltype(fi)
 flt_input_smpltype(fi::AbstractConvFilterInstance{T}) where T = T
-flt_output_length(fi::AbstractConvFilterInstance) = flt_input_length(fi) - filterlen(fi) + 1
+flt_output_length(fi::AbstractConvFilterInstance) = flt_input_length(fi) - _filterlen(fi) + 1
 flt_input_length(fi::AbstractConvFilterInstance) = fi.n_input
 
 function flt_output_time_axis(fi::AbstractConvFilterInstance, time::AbstractVector{<:RealQuantity})
-    valid_range = (firstindex(time) + fi.n_filter - 1):lastindex(time)
+    valid_range = (firstindex(time) + _filterlen(fi) - 1):lastindex(time)
     time[valid_range]
 end
 
@@ -90,7 +90,7 @@ struct DirectConvFilterInstance{T<:Real,TV<:AbstractVector{T}} <: AbstractConvFi
     n_input::Int
 end
 
-_filterlen(fi::DirectConvFilterInstance) = fi.n_input
+_filterlen(fi::DirectConvFilterInstance) = size(fi.reverse_h, 1)
 
 
 @inline function rdfilt!(y::AbstractVector{T}, fi::DirectConvFilterInstance{T}, x::AbstractVector{T}) where {T<:Real}
