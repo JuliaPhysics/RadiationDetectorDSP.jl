@@ -15,7 +15,7 @@ abstract type ConvolutionMethod end
 """
     abstract type DirectConvolution <: ConvolutionMethod
 
-When used as a type parameter value, marks linear behavior of a filter.
+Compute filter convolutions directly, without FFT.
 """
 abstract type DirectConvolution <: ConvolutionMethod end
 export DirectConvolution
@@ -24,7 +24,7 @@ export DirectConvolution
 """
     abstract type FFTConvolution <: ConvolutionMethod
 
-When used as a type parameter value, marks non linear behavior of a filter.
+Compute filter convolutions via FFT.
 """
 abstract type FFTConvolution <: ConvolutionMethod end
 export FFTConvolution
@@ -64,7 +64,7 @@ export ConvolutionFilter
 
 
 function fltinstance(flt::ConvolutionFilter, si::SamplingInfo{T}) where T
-    ConvolutionFilterInstance{T}(flt.b_012, flt.a_12, _smpllen(si))
+    AbstractConvFilterInstance{T}(flt.b_012, flt.a_12, _smpllen(si))
 end
 
 
@@ -74,10 +74,6 @@ end
 # # Multi-waveform:
 # irfft(rfft(H, 1) .* rfft(X, 1), size(H, 1), 1)
 
-
-fcv.(Ref(x2), Ref(h2), 1:10) ≈ irfft(rfft(x2) .* rfft(h2), length(h2))
-
-heatmap(deconv_img) 
 
 
 
@@ -101,42 +97,85 @@ end
 
 
 
-struct ConvolutionFilterInstance{T} <: AbstractRadSigFilterInstance{DirectConvolution}
-    b_012::NTuple{3,T}
-    a_12::NTuple{2,T}
-    n::Int
+abstract type AbstractConvFilterInstance{T<:Real} <: AbstractRadSigFilterInstance{LinearFiltering} end
+
+flt_output_smpltype(fi::AbstractConvFilterInstance) = flt_input_smpltype(fi)
+flt_input_smpltype(fi::AbstractConvFilterInstance{T}) where T = T
+flt_output_length(fi::AbstractConvFilterInstance) = flt_input_length(fi) - filterlen(fi) + 1
+flt_input_length(fi::AbstractConvFilterInstance) = fi.n_input
+
+function flt_output_time_axis(fi::AbstractConvFilterInstance, time::AbstractVector{<:RealQuantity})
+    valid_range = (firstindex(time) + fi.n_filter - 1):lastindex(time)
+    time[valid_range]
 end
 
-@inline function rdfilt!(Y::AbstractVector{T}, fi::ConvolutionFilterInstance{T}, X::AbstractVector{T}) where {T<:Real}
-    a1, a2 = fi.a_12
-    neg_a1, neg_a2 = -a1, -a2
-    b0, b1, b2 = fi.b_012
-    s1::T = zero(T) # s_init[1]
-    s2::T = zero(T) # s_init[2]
-    s3::T = zero(T)
 
-    #!!! @assert eachindex(X) == eachindex(Y)
 
+struct DirectConvFilterInstance{T<:Real,TV<:AbstractVector{T}} <: AbstractConvFilterInstance{T}
+    reverse_h::TV
+    n_input::Int
+end
+
+_filterlen(fi::DirectConvFilterInstance) = fi.n_input
+
+
+@inline function rdfilt!(y::AbstractVector{T}, fi::DirectConvFilterInstance{T}, x::AbstractVector{T}) where {T<:Real}
     @inbounds @simd for i in eachindex(X)
-        x_i = T(X[i])
+        rh = fi.reverse_h
 
-        z1 = fma(b0, x_i, s1)
-        z2 = fma(b1, x_i, s2)
-        z3 = fma(b2, x_i, s3)
+        @assert firstindex(y) == firstindex(x) == firstindex(rh) && lastindex(x) > lastindex(x)
+        @assert lastindex(y) == lastindex(x) - (lastindex(rh) - firstindex(rh))
 
-        y_i = z1
-        Y[i] = y_i
+        for i in eachindex(y)
+            y[i] = 0
+            for j in eachindex(rh)
+                y[i] = fma(rh[j], x[i+j-1], y[i])
+            end
+        end
 
-        s1 = fma(neg_a1, y_i, z2)
-        s2 = fma(neg_a2, y_i, z3)
+        @assert axes(x) == firstindex(h):fir
+        assert(firstindex(h) == firstindex(x))
     end
     Y
 end
 
 
 
-flt_output_smpltype(fi::ConvolutionFilterInstance) = flt_input_smpltype(fi)
-flt_input_smpltype(fi::ConvolutionFilterInstance{T}) where T = T
-flt_output_length(fi::ConvolutionFilterInstance) = flt_input_length(fi) - length(eachindex(fi.coeffs))
-flt_input_length(fi::ConvolutionFilterInstance) = fi.n_input
-flt_output_time_axis(fi::ConvolutionFilterInstance, time::AbstractVector{<:RealQuantity}) = time
+struct FFTConvFilterInstance{T<:Real,TV<:AbstractVector{Complex{T}}} <: AbstractConvFilterInstance{T}
+    rfft_h::TV
+end
+
+_filterlen(fi::FFTConvFilterInstance) = size(fi.rfft_h, 1)
+
+
+function rdfilt(fi::FFTConvFilterInstance, x::AbstractVector{T})
+    y_ext = irfft(rfft(x) .* fi.rfft_h, size(x, 1))
+    valid_range = (firstindex(y) + fi.n_filter - 1):lastindex(y)
+    y_ext[valid_range]
+end
+
+function rdfilt!(y::AbstractVector{T}, fi::FFTConvFilterInstance, x::AbstractVector{T})
+    y .= rdfilt(fi, x)
+end
+
+
+function bc_rdfilt(
+    fi::FFTConvFilterInstance,
+    inputs::ArrayOfSimilarArrays{<:RealQuantity,1}
+) where {M,N}
+    T_out = flt_output_smpltype(fi)
+    X = flatview(inputs)
+    Y = irfft(rfft(X, 1) .* fi.rfft_h, size(X, 1), 1)
+    valid_range = (firstindex(y) + fi.n_filter - 1):lastindex(y)
+    flat_output = Y[valid_range, :]
+    ArrayOfSimilarArrays{T_out,M,N}(flat_output)
+end
+
+function bc_rdfilt!(
+    outputs::ArrayOfSimilarArrays{<:RealQuantity,1},
+    fi::FFTConvFilterInstance,
+    inputs::ArrayOfSimilarArrays{<:RealQuantity,1}
+)
+    flatview(outputs) .= flatview(bc_rdfilt(fi, inputs))
+    return outputs
+end
