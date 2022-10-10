@@ -13,20 +13,20 @@ abstract type ConvolutionMethod end
 
 
 """
-    abstract type DirectConvolution <: ConvolutionMethod
+    DirectConvolution() isa ConvolutionMethod
 
 Compute filter convolutions directly, without FFT.
 """
-abstract type DirectConvolution <: ConvolutionMethod end
+struct DirectConvolution <: ConvolutionMethod end
 export DirectConvolution
 
 
 """
-    abstract type FFTConvolution <: ConvolutionMethod
+    FFTConvolution() isa ConvolutionMethod
 
 Compute filter convolutions via FFT.
 """
-abstract type FFTConvolution <: ConvolutionMethod end
+struct FFTConvolution <: ConvolutionMethod end
 export FFTConvolution
 
 
@@ -51,9 +51,6 @@ Base.@kwdef struct ConvolutionFilter{C<:ConvolutionMethod,T<:RealQuantity,TV<:Ab
 
     "Filter taps"
     coeffs::TV
-
-    "Offset of coefficients on time axis"
-    offset::Int
 end
 
 export ConvolutionFilter
@@ -97,23 +94,18 @@ _filterlen(fi::DirectConvFilterInstance) = fi.n_input
 
 
 @inline function rdfilt!(y::AbstractVector{T}, fi::DirectConvFilterInstance{T}, x::AbstractVector{T}) where {T<:Real}
-    @inbounds @simd for i in eachindex(X)
-        rh = fi.reverse_h
+    rh = fi.reverse_h
 
-        @assert firstindex(y) == firstindex(x) == firstindex(rh) && lastindex(x) > lastindex(x)
-        @assert lastindex(y) == lastindex(x) - (lastindex(rh) - firstindex(rh))
+    @assert firstindex(y) == firstindex(x) == firstindex(rh) && lastindex(x) >= lastindex(rh)
+    @assert lastindex(y) == lastindex(x) - (lastindex(rh) - firstindex(rh))
 
-        for i in eachindex(y)
-            y[i] = 0
-            for j in eachindex(rh)
-                y[i] = fma(rh[j], x[i+j-1], y[i])
-            end
+    for i in eachindex(y)
+        y[i] = 0
+        @simd for j in eachindex(rh)
+            y[i] = fma(rh[j], x[i+j-1], y[i])
         end
-
-        @assert axes(x) == firstindex(h):fir
-        assert(firstindex(h) == firstindex(x))
     end
-    Y
+    return y
 end
 
 
