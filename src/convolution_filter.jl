@@ -58,42 +58,19 @@ end
 
 export ConvolutionFilter
 
-## For testing:
-#fltparameters(f::ConvolutionFilter) = (b_012 = f.b_012, a_12 = f.a_12)
-#fltparameters(f::DSP.Biquad) = (b_012 = SVec(f.b0, f.b1, f.b2), a_12 = SVec(one(f.a1), f.a1, f.a2))
 
+function fltinstance(flt::ConvolutionFilter{DirectConvolution}, si::SamplingInfo{T}) where T
+    reverse_h = reverse(T.(flt.coeffs)) # ToDo: Optimize
+    DirectConvFilterInstance(reverse_h, _smpllen(si))
+end
 
-function fltinstance(flt::ConvolutionFilter, si::SamplingInfo{T}) where T
-    AbstractConvFilterInstance{T}(flt.b_012, flt.a_12, _smpllen(si))
+function fltinstance(flt::ConvolutionFilter{FFTConvolution}, si::SamplingInfo{T}) where T
+    rfft_h = rfft(T.(flt.coeffs)) # ToDo: Optimize
+    FFTConvFilterInstance(rfft_h)
 end
 
 
-# # true starting from i = non-zero-length of h:
-# filt(FIRFilter(h), x) .≈ irfft(rfft(h) .* rfft(x), length(h))
-
-# # Multi-waveform:
-# irfft(rfft(H, 1) .* rfft(X, 1), size(H, 1), 1)
-
-
-
-
-
-function InverseFunctions.inverse(flt::ConvolutionFilter)
-    # In direct form 1:
-    # y_i[i] = b0 * x_i[i] + b1 * x_i[i-1] + b2 * x_i[i-2] - a1 * y_i[i-1] - a2 * y_i[i-2]
-    # x_i[i] = 1/b0 * y_i[i] + a1/b0 * y_i[i-1] + a2/b0 * y_i[i-2] - b1/b0 * x_i[i-1] - b2/b0 * x_i[i-2]
-
-    b0, b1, b2 = flt.b_012
-    a1, a2 = flt.a_12
-    inv_b0 = inv(b0)
-
-    ConvolutionFilter((inv_b0, inv_b0 * a1, inv_b0 * a2), (inv_b0 * b1, inv_b0 * b2))
-end
-
-
-function DSP.Biquad(flt::ConvolutionFilter{T}) where {T<:RealQuantity}
-    DSP.Biquad(map(T, flt.b_012)..., map(T, flt.a_12)...)
-end
+DSP.FIRFilter(flt::ConvolutionFilter) = DSP.FIRFilter(flt.coeffs)
 
 
 
@@ -148,33 +125,40 @@ end
 _filterlen(fi::FFTConvFilterInstance) = size(fi.rfft_h, 1)
 
 
-function rdfilt(fi::FFTConvFilterInstance, x::AbstractVector{T})
+# # true starting from i = non-zero-length of h:
+# filt(FIRFilter(h), x) .≈ irfft(rfft(h) .* rfft(x), length(h))
+
+# # Multi-waveform:
+# irfft(rfft(H, 1) .* rfft(X, 1), size(H, 1), 1)
+
+
+function rdfilt(fi::FFTConvFilterInstance, x::AbstractVector{<:Real})
     y_ext = irfft(rfft(x) .* fi.rfft_h, size(x, 1))
     valid_range = (firstindex(y) + fi.n_filter - 1):lastindex(y)
     y_ext[valid_range]
 end
 
-function rdfilt!(y::AbstractVector{T}, fi::FFTConvFilterInstance, x::AbstractVector{T})
+function rdfilt!(y::AbstractVector{T}, fi::FFTConvFilterInstance, x::AbstractVector{T}) where {T<:Real}
     y .= rdfilt(fi, x)
 end
 
 
 function bc_rdfilt(
     fi::FFTConvFilterInstance,
-    inputs::ArrayOfSimilarArrays{<:RealQuantity,1}
-) where {M,N}
+    inputs::ArrayOfSimilarArrays{<:Real,1,N}
+) where N
     T_out = flt_output_smpltype(fi)
     X = flatview(inputs)
     Y = irfft(rfft(X, 1) .* fi.rfft_h, size(X, 1), 1)
     valid_range = (firstindex(y) + fi.n_filter - 1):lastindex(y)
     flat_output = Y[valid_range, :]
-    ArrayOfSimilarArrays{T_out,M,N}(flat_output)
+    ArrayOfSimilarArrays{T_out,1,N}(flat_output)
 end
 
 function bc_rdfilt!(
-    outputs::ArrayOfSimilarArrays{<:RealQuantity,1},
+    outputs::ArrayOfSimilarArrays{<:Real,1},
     fi::FFTConvFilterInstance,
-    inputs::ArrayOfSimilarArrays{<:RealQuantity,1}
+    inputs::ArrayOfSimilarArrays{<:Real,1}
 )
     flatview(outputs) .= flatview(bc_rdfilt(fi, inputs))
     return outputs
