@@ -2,7 +2,7 @@
 
 
 """
-    abstract type FilterLinearity <: FilteringType
+    abstract type FilteringType
 
 Indended as a type parameter to designate the behavior of a filter
 as linear or nonlinear.
