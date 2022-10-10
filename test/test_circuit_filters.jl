@@ -3,6 +3,7 @@
 using RadiationDetectorDSP
 using Test
 
+using InverseFunctions
 using Statistics
 
 
@@ -73,7 +74,7 @@ using Statistics
         flt = SimpleCSAFilter(tau_rise = 20, tau_decay = 500)
         output = flt(x)
         plot!(output)
-        output_deconv = inverse(CRFilter(τ_decay))(output)
+        output_deconv = inverse(CRFilter(cr = 500))(output)
         plot!(output_deconv)
         tail = output_deconv[150:end]
         # Tail of reco should be flat:
