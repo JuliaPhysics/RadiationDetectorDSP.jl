@@ -202,7 +202,7 @@ function bc_rdfilt(
 ) where {M,N}
     T_out = flt_output_smpltype(fi)
     n_out = flt_output_length(fi)
-    flat_output = similar(inputs, T_out, n_out, size(inputs)...)
+    flat_output = similar(flatview(inputs), T_out, n_out, size(inputs)...)
     outputs = ArrayOfSimilarArrays{T_out,M,N}(flat_output)
     bc_rdfilt!(outputs, fi, inputs)
 end
@@ -243,25 +243,28 @@ function bc_rdfilt!(
 end
 
 
-@kernel function _ka_bc_rdfilt_kernel!(Y::AbstractArray{<:RealQuantity}, fi::AbstractRadSigFilterInstance, X::AbstractArray{<:RealQuantity})
-    idxs = @index(Global, NTuple)
+@inline function _ka_bc_rdfilt_impl!(
+    Y::AbstractArray{<:RealQuantity}, fi::AbstractConvFilterInstance, X::AbstractArray{<:RealQuantity},
+    idxs::NTuple{N,<:Integer}
+) where N
     sub_X = view(X, :, idxs...)
     sub_Y = view(Y, :, idxs...)
     rdfilt!(sub_Y, fi, sub_X)
 end
 
 function _ka_bc_rdfilt!(
+    kernelfunc!::Function,
     outputs::ArrayOfSimilarArrays{<:RealQuantity},
-    fi::AbstractRadSigFilterInstance,
-    inputs::ArrayOfSimilarArrays{<:RealQuantity}
+    inputs::ArrayOfSimilarArrays{<:RealQuantity},
+    fi_args...
 )
     X = flatview(inputs)
     Y = flatview(outputs)
     @argcheck Base.tail(axes(X)) == Base.tail(axes(Y))
 
-    device = KernelAbstractions.get_device(Y)
-    kernel! = _ka_bc_rdfilt_kernel!(device)
-    evt = kernel!(Y, fi, X, ndrange=Base.tail(size(Y))) 
+    dev = KernelAbstractions.get_device(Y)
+    kernel! = kernelfunc!(dev)
+    evt = kernel!(Y, X, fi_args..., ndrange=Base.tail(size(Y))) 
     wait(evt)
     return outputs
 end

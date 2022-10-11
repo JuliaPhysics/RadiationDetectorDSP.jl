@@ -97,15 +97,13 @@ end
 
 _filterlen(fi::DirectConvFilterInstance) = size(fi.reverse_h, 1)
 
-#@inline rdfilt!(y::AbstractVector, fi::DirectConvFilterInstance, x::AbstractVector) = 0
-
 @inline function rdfilt!(y::AbstractVector{T}, fi::DirectConvFilterInstance{T}, x::AbstractVector{T}) where {T<:Real}
     rh = fi.reverse_h
 
-    @assert firstindex(y) == firstindex(x) == firstindex(rh) && lastindex(x) >= lastindex(rh)
-    @assert lastindex(y) == lastindex(x) - (lastindex(rh) - firstindex(rh))
+    #@assert firstindex(y) == firstindex(x) == firstindex(rh) && lastindex(x) >= lastindex(rh)
+    #@assert lastindex(y) == lastindex(x) - (lastindex(rh) - firstindex(rh))
 
-    for i in eachindex(y)
+    @inbounds for i in eachindex(y)
         y[i] = 0
         @simd for j in eachindex(rh)
             y[i] = fma(rh[j], x[i+j-1], y[i])
@@ -114,12 +112,17 @@ _filterlen(fi::DirectConvFilterInstance) = size(fi.reverse_h, 1)
     return y
 end
 
+
+@kernel function _dconv_kernel!(Y::AbstractArray{<:RealQuantity}, X::AbstractArray{<:RealQuantity}, fi_args...)
+    _ka_bc_rdfilt_impl!(Y, DirectConvFilterInstance(fi_args...), X, @index(Global, NTuple))
+end
+
 function bc_rdfilt!(
     outputs::AbstractVector{<:AbstractSamples},
     fi::DirectConvFilterInstance,
     inputs::AbstractVector{<:AbstractSamples}
 )
-    _ka_bc_rdfilt!(outputs, fi, inputs)
+    _ka_bc_rdfilt!(_dconv_kernel!, outputs, inputs, fi.reverse_h, fi.n_input)
 end
 
 
