@@ -39,8 +39,8 @@ function ConvolutionFilter(flt::TrapezoidalChargeFilter)
     norm_factor = inv(navg)
     T = typeof(norm_factor)
     params = zeros(T, 2*navg + ngap)
-    fill!(view(params, firstindex(params):(firstindex(params)+navg-1)), -norm_factor)
-    fill!(view(params, firstindex(params)+navg+ngap:lastindex(params)), +norm_factor)
+    fill!(view(params, firstindex(params):(firstindex(params)+navg-1)), +norm_factor)
+    fill!(view(params, firstindex(params)+navg+ngap:lastindex(params)), -norm_factor)
     ConvolutionFilter(FFTConvolution(), params)
 end
 
@@ -50,9 +50,9 @@ function fltinstance(flt::TrapezoidalChargeFilter, si::SamplingInfo{T}) where T
     ngap = Int(flt.gaptime)
 
     navg >= 1 && ngap >= 0 || throw(ArgumentError("Require navg >= 1 and ngap >= 0"))
-    (2 * navg + ngap) <= length(idxs_x) || throw(ArgumentError("filter must not be longer than input"))
+    (2 * navg + ngap) <= _smpllen(si) || throw(ArgumentError("filter must not be longer than input"))
 
-    TrapezoidalChargeFilterInstance{T}(navg, ngap,_smpllen(si))
+    TrapezoidalChargeFilterInstance{T}(navg, ngap, _smpllen(si))
 end
 
 
@@ -63,7 +63,7 @@ struct TrapezoidalChargeFilterInstance{T<:RealQuantity} <: AbstractRadSigFilterI
 end
 
 
-_filterlen(fi::TrapezoidalChargeFilterInstance) = 2* fi.navg + f.ngap
+_filterlen(fi::TrapezoidalChargeFilterInstance) = 2* fi.navg + fi.ngap
 
 function flt_output_time_axis(fi::TrapezoidalChargeFilterInstance, time::AbstractVector{<:RealQuantity})
     valid_range = (firstindex(time) + _filterlen(fi) - 1):lastindex(time)
@@ -71,10 +71,13 @@ function flt_output_time_axis(fi::TrapezoidalChargeFilterInstance, time::Abstrac
 end
 
 
-@inline function rdfilt!(y::AbstractVector{T}, fi::AbstractConvFilterInstance{T}, x::AbstractVector{T}) where {T<:Real}
+@inline function rdfilt!(y::AbstractVector{T}, fi::TrapezoidalChargeFilterInstance{T}, x::AbstractVector{T}) where {T<:Real}
     @fastmath begin
-        @assert firstindex(y) == firstindex(x) == firstindex(rh) && lastindex(x) >= lastindex(rh)
-        @assert lastindex(y) == lastindex(x) - (lastindex(rh) - firstindex(rh))
+        navg = fi.navg
+        ngap = fi.ngap
+
+        @assert firstindex(y) == firstindex(x)
+        @assert lastindex(y) == lastindex(x) - _filterlen(fi) + 1
 
         norm_factor = inv(T(navg))
         acc::T = zero(T)
