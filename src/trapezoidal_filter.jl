@@ -91,9 +91,10 @@ end
 
         #@inbounds @simd
         for i in firstindex(x):(firstindex(x) + navg - 1)
+            #@info "YYYY" i + offs1 i + offs3
             acc = acc - x[i + offs1] + x[i + offs3]
         end
-        y[firstindex(y)] = acc
+        y[firstindex(y)] = acc * norm_factor
  
         #@inbounds @simd
         for i in firstindex(x):(lastindex(x) - offs4)

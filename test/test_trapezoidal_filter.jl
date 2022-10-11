@@ -56,10 +56,7 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
     #@test @inferred(fi(wf_x)) ≈ wf_y_ref
     @test @inferred(flt(wf_x)) ≈ wf_y_ref
 
-    @test DSP.FIRFilter(flt) isa DSP.FIRFilter # No inference test, FIRFilter ctor is not type stable
-    @test DSP.filt(DSP.FIRFilter(flt), x)[7:end] ≈ flt(x)
-
-    Y = nestedview(similar(flatview(X), (innersize(X, 1) - 6, size(X, 1))))
+    Y = nestedview(similar(flatview(X), (innersize(X, 1) - 15, size(X, 1))))
     fill!.(Y, NaN)
 
     @test @inferred(bc_rdfilt!(Y, fi, X)) === Y
