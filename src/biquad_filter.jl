@@ -66,7 +66,7 @@ end
     s2::T = zero(T) # s_init[2]
     s3::T = zero(T)
 
-    #!!! @assert eachindex(X) == eachindex(Y)
+    @assert eachindex(X) == eachindex(Y)
 
     @inbounds @simd for i in eachindex(X)
         x_i = T(X[i])

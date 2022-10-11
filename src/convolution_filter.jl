@@ -100,8 +100,8 @@ _filterlen(fi::DirectConvFilterInstance) = size(fi.reverse_h, 1)
 @inline function rdfilt!(y::AbstractVector{T}, fi::DirectConvFilterInstance{T}, x::AbstractVector{T}) where {T<:Real}
     rh = fi.reverse_h
 
-    #@assert firstindex(y) == firstindex(x) == firstindex(rh) && lastindex(x) >= lastindex(rh)
-    #@assert lastindex(y) == lastindex(x) - (lastindex(rh) - firstindex(rh))
+    @assert firstindex(y) == firstindex(x) == firstindex(rh) && lastindex(x) >= lastindex(rh)
+    @assert lastindex(y) == lastindex(x) - (lastindex(rh) - firstindex(rh))
 
     @inbounds for i in eachindex(y)
         y[i] = 0
