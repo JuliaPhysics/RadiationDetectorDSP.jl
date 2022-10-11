@@ -25,6 +25,9 @@ end
 export FirstOrderIIR
 
 
+Adapt.adapt_structure(to, flt::FirstOrderIIR) = flt
+
+
 function fltinstance(flt::FirstOrderIIR, si::SamplingInfo{T}) where T
     FirstOrderIIRInstance{T}(flt.b_01, flt.a_1, _smpllen(si))
 end
@@ -96,6 +99,29 @@ end
         s1 = fma(neg_a1, y_i, z2)
     end
     Y
+end
+
+
+@kernel function _firstorder_kernel!(Y::AbstractArray{<:RealQuantity}, X::AbstractArray{<:RealQuantity}, b_01, a_1, n)
+    idxs = @index(Global, NTuple)
+    fi = FirstOrderIIRInstance(b_01, a_1, n)
+    rdfilt!(view(Y, :, idxs...), fi, view(X, :, idxs...))
+end
+
+function bc_rdfilt!(
+    outputs::AbstractVector{<:AbstractSamples},
+    fi::FirstOrderIIRInstance,
+    inputs::AbstractVector{<:AbstractSamples}
+)
+    X = flatview(inputs)
+    Y = flatview(outputs)
+    @argcheck Base.tail(axes(X)) == Base.tail(axes(Y))
+
+    dev = KernelAbstractions.get_device(Y)
+    kernel! = _firstorder_kernel!(dev)
+    evt = kernel!(Y, X, fi.b_01, fi.a_1, fi.n, ndrange=Base.tail(size(Y))) 
+    wait(evt)
+    return outputs
 end
 
 

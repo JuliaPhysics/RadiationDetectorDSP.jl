@@ -24,9 +24,8 @@ end
 
 export BiquadFilter
 
-## For testing:
-#fltparameters(f::BiquadFilter) = (b_012 = f.b_012, a_12 = f.a_12)
-#fltparameters(f::DSP.Biquad) = (b_012 = SVec(f.b0, f.b1, f.b2), a_12 = SVec(one(f.a1), f.a1, f.a2))
+
+Adapt.adapt_structure(to, flt::BiquadFilter) = flt
 
 
 function fltinstance(flt::BiquadFilter, si::SamplingInfo{T}) where T
@@ -85,6 +84,28 @@ end
     Y
 end
 
+
+@kernel function _biquad_kernel(Y::AbstractArray{<:RealQuantity}, X::AbstractArray{<:RealQuantity}, b_012, a_12, n)
+    idxs = @index(Global, NTuple)
+    fi = BiquadFilterInstance(b_012, a_12, n)
+    rdfilt!(view(Y, :, idxs...), fi, view(X, :, idxs...))
+end
+
+function bc_rdfilt!(
+    outputs::AbstractVector{<:AbstractSamples},
+    fi::BiquadFilterInstance,
+    inputs::AbstractVector{<:AbstractSamples}
+)
+    X = flatview(inputs)
+    Y = flatview(outputs)
+    @argcheck Base.tail(axes(X)) == Base.tail(axes(Y))
+
+    dev = KernelAbstractions.get_device(Y)
+    kernel! = _biquad_kernel(dev)
+    evt = kernel!(Y, X, fi.b_012, fi.a_12, fi.n, ndrange=Base.tail(size(Y))) 
+    wait(evt)
+    return outputs
+end
 
 
 flt_output_smpltype(fi::BiquadFilterInstance) = flt_input_smpltype(fi)

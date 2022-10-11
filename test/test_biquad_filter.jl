@@ -6,6 +6,7 @@ using Test
 using Unitful
 using RadiationDetectorSignals, ArraysOfArrays, FillArrays
 using InverseFunctions
+using Adapt
 using DSP
 
 using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
@@ -13,6 +14,8 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
 @testset "BiquadFilter" begin
     flt = BiquadFilter((0.2, 0.15, 0.3), (-0.8, 0.4))
+        
+    @test adapt(Array, flt) isa BiquadFilter
 
     wfs_x = ArrayOfRDWaveforms((
         Fill(1.5u"ns" .* (1:47), 10),

@@ -6,12 +6,16 @@ using Test
 using Unitful
 using RadiationDetectorSignals, ArraysOfArrays, FillArrays
 using InverseFunctions
+using Adapt
+using DSP
 
 using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
 
 @testset "FirstOrderIIR" begin
     flt = FirstOrderIIR((0.2, 0.15), (-0.8,))
+        
+    @test adapt(Array, flt) isa FirstOrderIIR
 
     wfs_x = ArrayOfRDWaveforms((
         Fill(1.5u"ns" .* (1:47), 10),
@@ -64,8 +68,8 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
     flt2 = FirstOrderIIR((0.2, -0.5), (0.42,))
 
-    @test @inferred((flt1∘flt2)) isa BiquadFilter
-    @test @inferred((flt1∘flt2)(x)) ≈ flt1(flt2(x))
+    @test @inferred((flt∘flt2)) isa BiquadFilter
+    @test @inferred((flt∘flt2)(x)) ≈ flt(flt2(x))
 
     @test @inferred(BiquadFilter(flt)) isa BiquadFilter
     @test BiquadFilter(flt)(x) ≈ flt(x)
