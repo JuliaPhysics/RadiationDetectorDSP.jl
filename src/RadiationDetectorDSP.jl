@@ -46,6 +46,7 @@ include("convolution_filter.jl")
 include("biquad_filter.jl")
 include("first_order_iir.jl")
 include("circuit_filters.jl")
+include("trapezoidal_filter.jl")
 include("zac.jl")
 
 end # module
