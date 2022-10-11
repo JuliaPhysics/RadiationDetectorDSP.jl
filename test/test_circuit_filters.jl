@@ -73,7 +73,7 @@ using Statistics
 
     @testset "SimpleCSAFilter" begin
         x = current_wf
-        plot(cumsum(x.signal))
+        plot(RDWaveform(x.time, cumsum(x.signal)))
         flt = SimpleCSAFilter(tau_rise = 15u"ns" * 20, tau_decay = 15u"ns" * 500)
         output = flt(x)
         plot!(output)
