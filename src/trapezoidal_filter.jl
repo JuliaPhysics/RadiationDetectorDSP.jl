@@ -19,11 +19,11 @@ $(TYPEDFIELDS)
 A sharp step on the input will result in a trapezoid with rise time and fall
 time `avgtime` and a flat top of length `gaptime`.
 """
-@with_kw struct TrapezoidalChargeFilter{
+Base.@kwdef struct TrapezoidalChargeFilter{
     T <: RealQuantity
-} <: AbstractRadIIRFilter
+} <: AbstractRadFIRFilter
     "averaging time"
-    avgtime::T,
+    avgtime::T
 
     "gap time"
     gaptime::T
@@ -31,7 +31,18 @@ end
 
 export TrapezoidalChargeFilter
 
-#Adapt.adapt_structure(to, flt::TrapezoidalChargeFilter) = flt
+Adapt.adapt_structure(to, flt::TrapezoidalChargeFilter) = flt
+
+function ConvolutionFilter(flt::TrapezoidalChargeFilter)
+    navg = Int(flt.avgtime)
+    ngap = Int(flt.gaptime)
+    norm_factor = inv(navg)
+    T = typeof(norm_factor)
+    params = zeros(T, 2*navg + ngap)
+    fill!(view(params, firstindex(params):(firstindex(params)+navg-1)), -norm_factor)
+    fill!(view(params, firstindex(params)+navg+ngap:lastindex(params)), +norm_factor)
+    ConvolutionFilter(FFTConvolution(), params)
+end
 
 
 function fltinstance(flt::TrapezoidalChargeFilter, si::SamplingInfo{T}) where T
@@ -41,12 +52,12 @@ function fltinstance(flt::TrapezoidalChargeFilter, si::SamplingInfo{T}) where T
     navg >= 1 && ngap >= 0 || throw(ArgumentError("Require navg >= 1 and ngap >= 0"))
     (2 * navg + ngap) <= length(idxs_x) || throw(ArgumentError("filter must not be longer than input"))
 
-    TrapezoidalChargeFilterInstance(navg, ngap,_smpllen(si))
+    TrapezoidalChargeFilterInstance{T}(navg, ngap,_smpllen(si))
 end
 
 
-struct TrapezoidalChargeFilterInstance <: AbstractRadSigFilterInstance{LinearFiltering}
-    navg::Int,
+struct TrapezoidalChargeFilterInstance{T<:RealQuantity} <: AbstractRadSigFilterInstance{LinearFiltering}
+    navg::Int
     ngap::Int
     n_input::Int
 end
@@ -65,7 +76,6 @@ end
         @assert firstindex(y) == firstindex(x) == firstindex(rh) && lastindex(x) >= lastindex(rh)
         @assert lastindex(y) == lastindex(x) - (lastindex(rh) - firstindex(rh))
 
-        T = eltype(x)
         norm_factor = inv(T(navg))
         acc::T = zero(T)
 
