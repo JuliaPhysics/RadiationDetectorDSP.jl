@@ -243,6 +243,30 @@ function bc_rdfilt!(
 end
 
 
+@kernel function _ka_bc_rdfilt_kernel!(Y::AbstractArray{<:RealQuantity}, fi::AbstractRadSigFilterInstance, X::AbstractArray{<:RealQuantity})
+    idxs = @index(Global, NTuple)
+    sub_X = view(X, :, idxs...)
+    sub_Y = view(Y, :, idxs...)
+    rdfilt!(sub_Y, fi, sub_X)
+end
+
+function _ka_bc_rdfilt!(
+    outputs::ArrayOfSimilarArrays{<:RealQuantity},
+    fi::AbstractRadSigFilterInstance,
+    inputs::ArrayOfSimilarArrays{<:RealQuantity}
+)
+    X = flatview(inputs)
+    Y = flatview(outputs)
+    @argcheck Base.tail(axes(X)) == Base.tail(axes(Y))
+
+    device = KernelAbstractions.get_device(Y)
+    kernel! = _ka_bc_rdfilt_kernel!(device)
+    evt = kernel!(Y, fi, X, ndrange=Base.tail(size(Y))) 
+    wait(evt)
+    return outputs
+end
+
+
 """
     RadiationDetectorDSP.flt_output_smpltype(fi::AbstractRadSigFilterInstance)
 

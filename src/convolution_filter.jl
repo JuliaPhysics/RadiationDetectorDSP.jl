@@ -97,6 +97,7 @@ end
 
 _filterlen(fi::DirectConvFilterInstance) = size(fi.reverse_h, 1)
 
+#@inline rdfilt!(y::AbstractVector, fi::DirectConvFilterInstance, x::AbstractVector) = 0
 
 @inline function rdfilt!(y::AbstractVector{T}, fi::DirectConvFilterInstance{T}, x::AbstractVector{T}) where {T<:Real}
     rh = fi.reverse_h
@@ -111,6 +112,14 @@ _filterlen(fi::DirectConvFilterInstance) = size(fi.reverse_h, 1)
         end
     end
     return y
+end
+
+function bc_rdfilt!(
+    outputs::AbstractVector{<:AbstractSamples},
+    fi::DirectConvFilterInstance,
+    inputs::AbstractVector{<:AbstractSamples}
+)
+    _ka_bc_rdfilt!(outputs, fi, inputs)
 end
 
 
