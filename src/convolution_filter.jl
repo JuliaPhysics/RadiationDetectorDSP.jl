@@ -113,8 +113,10 @@ _filterlen(fi::DirectConvFilterInstance) = size(fi.reverse_h, 1)
 end
 
 
-@kernel function _dconv_kernel!(Y::AbstractArray{<:RealQuantity}, X::AbstractArray{<:RealQuantity}, fi_args...)
-    _ka_bc_rdfilt_impl!(Y, DirectConvFilterInstance(fi_args...), X, @index(Global, NTuple))
+@kernel function _direct_conv_kernel!(Y::AbstractArray{<:RealQuantity}, X::AbstractArray{<:RealQuantity}, reverse_h, n_input)
+    idxs = @index(Global, NTuple)
+    fi = DirectConvFilterInstance(reverse_h, n_input)
+    rdfilt!(view(Y, :, idxs...), fi, view(X, :, idxs...))
 end
 
 function bc_rdfilt!(
@@ -122,9 +124,16 @@ function bc_rdfilt!(
     fi::DirectConvFilterInstance,
     inputs::AbstractVector{<:AbstractSamples}
 )
-    _ka_bc_rdfilt!(_dconv_kernel!, outputs, inputs, fi.reverse_h, fi.n_input)
-end
+    X = flatview(inputs)
+    Y = flatview(outputs)
+    @argcheck Base.tail(axes(X)) == Base.tail(axes(Y))
 
+    dev = KernelAbstractions.get_device(Y)
+    kernel! = _direct_conv_kernel!(dev)
+    evt = kernel!(Y, X, fi.reverse_h, fi.n_input, ndrange=Base.tail(size(Y))) 
+    wait(evt)
+    return outputs
+end
 
 
 struct FFTConvFilterInstance{T<:Real,TV<:AbstractVector{Complex{T}}} <: AbstractConvFilterInstance{T}
