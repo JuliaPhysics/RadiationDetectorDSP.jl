@@ -79,7 +79,7 @@ using Statistics
         plot!(output)
         output_deconv = inverse(CRFilter(cr = 15u"ns" * 500))(output)
         plot!(output_deconv)
-        tail = output_deconv[150:end]
+        tail = output_deconv.signal[150:end]
         # Tail of reco should be flat:
         @test var(tail) < 1e-5
     end
