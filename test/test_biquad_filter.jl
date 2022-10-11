@@ -6,6 +6,7 @@ using Test
 using Unitful
 using RadiationDetectorSignals, ArraysOfArrays, FillArrays
 using InverseFunctions
+using DSP
 
 using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 

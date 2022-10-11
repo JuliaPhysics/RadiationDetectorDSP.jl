@@ -55,6 +55,7 @@ end
 
 export ConvolutionFilter
 
+Adapt.adapt_structure(to, f::ConvolutionFilter) = ConvolutionFilter(f.method, Adapt.adapt_structure(to, f.coeffs))
 
 function fltinstance(flt::ConvolutionFilter{DirectConvolution}, si::SamplingInfo{T}) where T
     reverse_h = reverse(T.(flt.coeffs)) # ToDo: Optimize
@@ -62,8 +63,12 @@ function fltinstance(flt::ConvolutionFilter{DirectConvolution}, si::SamplingInfo
 end
 
 function fltinstance(flt::ConvolutionFilter{FFTConvolution}, si::SamplingInfo{T}) where T
-    rfft_h = rfft(T.(flt.coeffs)) # ToDo: Optimize
-    FFTConvFilterInstance(rfft_h)
+    n_filter = size(flt.coeffs, 1)
+    h_ext = similar(flt.coeffs, T, length(si.axis))
+    fill!(h_ext, zero(eltype(h_ext)))
+    copy!(view(h_ext, firstindex(h_ext):(firstindex(h_ext) + n_filter - 1)), flt.coeffs)
+    rfft_h = rfft(h_ext)
+    FFTConvFilterInstance(rfft_h, n_filter)
 end
 
 
@@ -112,9 +117,10 @@ end
 
 struct FFTConvFilterInstance{T<:Real,TV<:AbstractVector{Complex{T}}} <: AbstractConvFilterInstance{T}
     rfft_h::TV
+    n_filter::Int
 end
 
-_filterlen(fi::FFTConvFilterInstance) = size(fi.rfft_h, 1)
+_filterlen(fi::FFTConvFilterInstance) = fi.n_filter
 
 
 # # true starting from i = non-zero-length of h:
@@ -126,7 +132,7 @@ _filterlen(fi::FFTConvFilterInstance) = size(fi.rfft_h, 1)
 
 function rdfilt(fi::FFTConvFilterInstance, x::AbstractVector{<:Real})
     y_ext = irfft(rfft(x) .* fi.rfft_h, size(x, 1))
-    valid_range = (firstindex(y) + fi.n_filter - 1):lastindex(y)
+    valid_range = (firstindex(y_ext) + fi.n_filter - 1):lastindex(y_ext)
     y_ext[valid_range]
 end
 
@@ -142,7 +148,7 @@ function bc_rdfilt(
     T_out = flt_output_smpltype(fi)
     X = flatview(inputs)
     Y = irfft(rfft(X, 1) .* fi.rfft_h, size(X, 1), 1)
-    valid_range = (firstindex(y) + fi.n_filter - 1):lastindex(y)
+    valid_range = (first(axes(Y, 1)) + fi.n_filter - 1):last(axes(Y, 1))
     flat_output = Y[valid_range, :]
     ArrayOfSimilarArrays{T_out,1,N}(flat_output)
 end
