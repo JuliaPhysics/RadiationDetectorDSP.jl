@@ -4,6 +4,7 @@ using RadiationDetectorDSP
 using Test
 
 using InverseFunctions
+using RadiationDetectorSignals, Unitful
 using Statistics
 
 
@@ -14,13 +15,15 @@ using Statistics
 
     t_drift = 40
     current_signal = vcat(fill(0.0, 10), fill(1.0 / t_drift, t_drift), fill(0.0, 200))
+    current_wf = RDWaveform(15u"ns"*(0:249), current_signal)
 
     step_signal = vcat(fill(0.0, 10), fill(1.0, 30))
+    step_wf = RDWaveform(15u"ns"*(0:39), step_signal)
 
     @testset "RCFilter" begin
-        x = step_signal
+        x = current_wf
         plot(x)
-        flt = RCFilter(rc = 20)
+        flt = RCFilter(rc = 20 * 15u"ns")
         output = flt(x)
         plot!(output)
         plot!(inverse(flt)(output))
@@ -31,9 +34,9 @@ using Statistics
     end
 
     @testset "CRFilter" begin
-        x = vcat(fill(0.0, 10), fill(1.0, 30))
+        x = step_wf
         plot(x)
-        flt = CRFilter(cr = 10)
+        flt = CRFilter(cr = 15u"ns" * 10)
         output = flt(x)
         plot!(output)
         plot!(inverse(flt)(output))
@@ -44,9 +47,9 @@ using Statistics
     end
 
     @testset "ModCRFilter" begin
-        x = vcat(fill(0.0, 10), fill(1.0, 30))
+        x = step_wf
         plot(x)
-        flt = ModCRFilter(cr = 10)
+        flt = ModCRFilter(cr = 15u"ns" * 10)
         output = flt(x)
         plot!(output)
         plot!(inverse(flt)(output))
@@ -57,7 +60,7 @@ using Statistics
     end
 
     @testset "IntegratorFilter" begin
-        x = current_signal
+        x = current_wf
         plot(x)
         flt = IntegratorFilter(gain = 2.0)
         output = flt(x)
@@ -69,12 +72,12 @@ using Statistics
     end
 
     @testset "SimpleCSAFilter" begin
-        x = current_signal
-        plot(cumsum(x))
-        flt = SimpleCSAFilter(tau_rise = 20, tau_decay = 500)
+        x = current_wf
+        plot(cumsum(x.signal))
+        flt = SimpleCSAFilter(tau_rise = 15u"ns" * 20, tau_decay = 15u"ns" * 500)
         output = flt(x)
         plot!(output)
-        output_deconv = inverse(CRFilter(cr = 500))(output)
+        output_deconv = inverse(CRFilter(cr = 15u"ns" * 500))(output)
         plot!(output_deconv)
         tail = output_deconv[150:end]
         # Tail of reco should be flat:

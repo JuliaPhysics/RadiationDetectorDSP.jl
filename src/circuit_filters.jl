@@ -2,7 +2,7 @@
 
 
 """
-    struct RCFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+    struct RCFilter <: AbstractRadII>RFilter
 
 A first-order RC lowpass filter.
 
@@ -25,7 +25,7 @@ end
 
 export RCFilter
 
-function fltinstance(flt::ModCRFilter, fi::SamplingInfo)
+function fltinstance(flt::RCFilter, fi::SamplingInfo)
     fltinstance(FirstOrderIIR(RCFilter(ustrip(NoUnits, flt.rc / step(fi.axis)))), fi)
 end
 
@@ -41,7 +41,7 @@ end
 
 
 """
-    struct InvRCFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+    struct InvRCFilter <: AbstractRadIIRFilter
 
 Inverse of [`RCFilter`](@ref).
 
@@ -76,7 +76,7 @@ end
 
 
 """
-    struct CRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+    struct CRFilter <: AbstractRadIIRFilter
 
 A first-order CR highpass filter.
 
@@ -113,7 +113,7 @@ end
 
 
 """
-    struct InvCRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+    struct InvCRFilter <: AbstractRadIIRFilter
 
 Inverse of [`CRFilter`](@ref).
 
@@ -147,7 +147,7 @@ end
 
 
 """
-    struct ModCRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+    struct ModCRFilter <: AbstractRadIIRFilter
 
 A first-order CR highpass filter, modified for full-amplitude step-signal
 response.
@@ -190,7 +190,7 @@ end
 
 
 """
-    struct InvModCRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+    struct InvModCRFilter <: AbstractRadIIRFilter
 
 Inverse of [`ModCRFilter`](@ref).
 
@@ -225,7 +225,7 @@ end
 
 
 """
-    struct IntegratorFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+    struct IntegratorFilter <: AbstractRadIIRFilter
 
 An integrator filter. It's inverse is [`DifferentiatorFilter`](@ref).
 
@@ -257,7 +257,7 @@ end
 
 
 """
-    struct DifferentiatorFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+    struct DifferentiatorFilter <: AbstractRadIIRFilter
 
 An integrator filter. It's inverse is [`IntegratorFilter`](@ref).
 
@@ -289,7 +289,7 @@ end
 
 
 """
-    struct IntegratorCRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+    struct IntegratorCRFilter <: AbstractRadIIRFilter
 
 A modified CR-filter. The filter has an inverse.
 
@@ -327,7 +327,7 @@ end
 
 
 """
-    struct IntegratorModCRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+    struct IntegratorModCRFilter <: AbstractRadIIRFilter
 
 A modified CR-filter. The filter has an inverse.
 
@@ -365,7 +365,7 @@ end
 
 
 """
-    struct SimpleCSAFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+    struct SimpleCSAFilter <: AbstractRadIIRFilter
 
 Simulates the current-signal response of a charge-sensitive preamplifier with
 resistive reset, the output is a charge signal.
@@ -394,7 +394,7 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-Base.@kwdef struct SimpleCSAFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+Base.@kwdef struct SimpleCSAFilter{T<:RealQuantity,U<:RealQuantity} <: AbstractRadIIRFilter
     "Rise time constant"
     tau_rise::T
 
@@ -402,13 +402,13 @@ Base.@kwdef struct SimpleCSAFilter{T<:RealQuantity} <: AbstractRadIIRFilter
     tau_decay::T
 
     "Gain"
-    gain::T = 1
+    gain::U = 1
 end
 
 export SimpleCSAFilter
 
 function fltinstance(flt::SimpleCSAFilter, fi::SamplingInfo)
-    fltinstance(FirstOrderIIR(SimpleCSAFilter(
+    fltinstance(BiquadFilter(SimpleCSAFilter(
         ustrip(NoUnits, flt.tau_rise / step(fi.axis)),
         ustrip(NoUnits, flt.tau_decay / step(fi.axis)),
         flt.gain,
@@ -419,6 +419,7 @@ InverseFunctions.inverse(flt::SimpleCSAFilter) = inverse(BiquadFilter(flt))
 
 function BiquadFilter(flt::SimpleCSAFilter)
     flt1 = RCFilter(rc = flt.tau_rise)
-    flt2 = IntegratorCRFilter(cr = flt.tau_decay, gain = flt.gain)
+    tau_decay, gain = promote(flt.tau_decay, flt.gain)
+    flt2 = IntegratorCRFilter(cr = tau_decay, gain = gain)
     FirstOrderIIR(flt1) ∘ FirstOrderIIR(flt2)
 end
