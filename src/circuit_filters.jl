@@ -25,7 +25,9 @@ end
 
 export RCFilter
 
-fltinstance(flt::RCFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
+function fltinstance(flt::ModCRFilter, fi::SamplingInfo)
+    fltinstance(FirstOrderIIR(RCFilter(ustrip(NoUnits, flt.rc / step(fi.axis)))), fi)
+end
 
 InverseFunctions.inverse(flt::RCFilter) = InvRCFilter(flt.rc)
 
@@ -58,7 +60,9 @@ end
 
 export InvRCFilter
 
-fltinstance(flt::InvRCFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
+function fltinstance(flt::InvRCFilter, fi::SamplingInfo)
+    fltinstance(FirstOrderIIR(InvRCFilter(ustrip(NoUnits, flt.rc / step(fi.axis)))), fi)
+end
 
 InverseFunctions.inverse(flt::InvRCFilter) = RCFilter(flt.rc)
 
@@ -94,7 +98,9 @@ end
 
 export CRFilter
 
-fltinstance(flt::CRFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
+function fltinstance(flt::CRFilter, fi::SamplingInfo)
+    fltinstance(FirstOrderIIR(CRFilter(ustrip(NoUnits, flt.cr / step(fi.axis)))), fi)
+end
 
 InverseFunctions.inverse(flt::CRFilter) = InvCRFilter(flt.cr)
 
@@ -126,7 +132,9 @@ end
 
 export InvCRFilter
 
-fltinstance(flt::InvCRFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
+function fltinstance(flt::InvCRFilter, fi::SamplingInfo)
+    fltinstance(FirstOrderIIR(InvCRFilter(ustrip(NoUnits, flt.cr / step(fi.axis)))), fi)
+end
 
 InverseFunctions.inverse(flt::InvCRFilter) = CRFilter(flt.cr)
 
@@ -167,7 +175,9 @@ end
 
 export ModCRFilter
 
-fltinstance(flt::ModCRFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
+function fltinstance(flt::ModCRFilter, fi::SamplingInfo)
+    fltinstance(FirstOrderIIR(ModCRFilter(ustrip(NoUnits, flt.cr / step(fi.axis)))), fi)
+end
 
 InverseFunctions.inverse(flt::ModCRFilter) = InvModCRFilter(flt.cr)
 
@@ -199,7 +209,9 @@ end
 
 export InvModCRFilter
 
-fltinstance(flt::InvModCRFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
+function fltinstance(flt::InvModCRFilter, fi::SamplingInfo)
+    fltinstance(FirstOrderIIR(InvModCRFilter(ustrip(NoUnits, flt.cr / step(fi.axis)))), fi)
+end
 
 InverseFunctions.inverse(flt::InvModCRFilter) = ModCRFilter(flt.cr)
 
@@ -298,7 +310,9 @@ end
 
 export IntegratorCRFilter
 
-fltinstance(flt::IntegratorCRFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
+function fltinstance(flt::IntegratorCRFilter, fi::SamplingInfo)
+    fltinstance(FirstOrderIIR(IntegratorCRFilter(flt.gain, ustrip(NoUnits, flt.cr / step(fi.axis)))), fi)
+end
 
 InverseFunctions.inverse(flt::IntegratorCRFilter) = inverse(FirstOrderIIR(flt))
 
@@ -334,7 +348,9 @@ end
 
 export IntegratorModCRFilter
 
-fltinstance(flt::IntegratorModCRFilter, fi::SamplingInfo) = fltinstance(FirstOrderIIR(flt), fi)
+function fltinstance(flt::IntegratorModCRFilter, fi::SamplingInfo)
+    fltinstance(FirstOrderIIR(IntegratorCRFilter(flt.gain, ustrip(NoUnits, flt.cr / step(fi.axis)))), fi)
+end
 
 InverseFunctions.inverse(flt::IntegratorModCRFilter) = inverse(FirstOrderIIR(flt))
 
@@ -391,7 +407,13 @@ end
 
 export SimpleCSAFilter
 
-fltinstance(flt::SimpleCSAFilter, fi::SamplingInfo) = fltinstance(BiquadFilter(flt), fi)
+function fltinstance(flt::SimpleCSAFilter, fi::SamplingInfo)
+    fltinstance(FirstOrderIIR(SimpleCSAFilter(
+        ustrip(NoUnits, flt.tau_rise / step(fi.axis)),
+        ustrip(NoUnits, flt.tau_decay / step(fi.axis)),
+        flt.gain,
+    )), fi)
+end
 
 InverseFunctions.inverse(flt::SimpleCSAFilter) = inverse(BiquadFilter(flt))
 

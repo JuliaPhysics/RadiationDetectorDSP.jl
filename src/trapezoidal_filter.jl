@@ -46,8 +46,10 @@ end
 
 
 function fltinstance(flt::TrapezoidalChargeFilter, si::SamplingInfo{T}) where T
-    navg = Int(flt.avgtime)
-    ngap = Int(flt.gaptime)
+    delta_t = step(si.axis)
+
+    navg = round(Int, uconvert(NoUnits, flt.avgtime / delta_t))
+    ngap = round(Int, uconvert(NoUnits, flt.gaptime / delta_t))
 
     navg >= 1 && ngap >= 0 || throw(ArgumentError("Require navg >= 1 and ngap >= 0"))
     (2 * navg + ngap) <= _smpllen(si) || throw(ArgumentError("filter must not be longer than input"))

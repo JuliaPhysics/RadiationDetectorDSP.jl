@@ -14,6 +14,7 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
 @testset "ConvolutionFilter" begin
     flt = TrapezoidalChargeFilter(6,4)
+    uflt = TrapezoidalChargeFilter(6 * 1.5u"ns", 4 * 1.5u"ns")
     
     @test adapt(Array, flt) isa TrapezoidalChargeFilter
 
@@ -54,7 +55,7 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
     #@test @inferred(rdfilt(flt, wf_x)) ≈ wf_y_ref
 
     #@test @inferred(fi(wf_x)) ≈ wf_y_ref
-    @test @inferred(flt(wf_x)) ≈ wf_y_ref
+    @test @inferred(uflt(wf_x)) ≈ wf_y_ref
 
     Y = nestedview(similar(flatview(X), (innersize(X, 1) - 15, size(X, 1))))
     fill!.(Y, NaN)
@@ -74,7 +75,7 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
     @test @inferred(bc_rdfilt(fi, wfs_x)) ≈ wfs_y_ref
     #@test @inferred(bc_rdfilt(flt, wfs_x)) ≈ wfs_y_ref
     #@test @inferred(broadcast(fi, wfs_x)) ≈ wfs_y_ref
-    @test @inferred(broadcast(flt, wfs_x)) ≈ wfs_y_ref
+    @test @inferred(broadcast(uflt, wfs_x)) ≈ wfs_y_ref
     #@test typeof(broadcast(fi, wfs_x)) == typeof(wfs_y_ref)
-    @test typeof(broadcast(flt, wfs_x)) == typeof(wfs_y_ref)
+    @test typeof(broadcast(uflt, wfs_x)) == typeof(wfs_y_ref)
 end
