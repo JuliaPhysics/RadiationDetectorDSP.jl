@@ -25,7 +25,7 @@ $(TYPEDFIELDS)
 end
 export DropFilter
 
-#!!!!! ToDo: Implement DropFilter
+# ToDo: Implement DropFilter
 
 
 """
@@ -47,4 +47,4 @@ $(TYPEDFIELDS)
 end
 export ResamplingFilter
 
-#!!!!! ToDo: Implement ResamplingFilter
+# ToDo: Implement ResamplingFilter

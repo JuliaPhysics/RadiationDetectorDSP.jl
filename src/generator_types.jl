@@ -37,7 +37,7 @@ $(TYPEDFIELDS)
 end
 export PulseGenerator
 
-#!!!!! ToDo: Implement PulseGenerator
+# ToDo: Implement PulseGenerator
 
 
 
@@ -71,7 +71,7 @@ $(TYPEDFIELDS)
 end
 export StepGenerator
 
-#!!!!! ToDo: Implement StepGenerator
+# ToDo: Implement StepGenerator
 
 
 
@@ -96,7 +96,7 @@ $(TYPEDFIELDS)
 end
 export WhiteNoiseGenerator
 
-#!!!!! ToDo: Implement WhiteNoiseGenerator
+# ToDo: Implement WhiteNoiseGenerator
 
 
 """
@@ -122,7 +122,7 @@ $(TYPEDFIELDS)
 end
 export ShapedNoiseGenerator
 
-#!!!!! ToDo: Implement ShapedNoiseGenerator
+# ToDo: Implement ShapedNoiseGenerator
 
 
 # ToDo: Add triangular noise generator for dithering.
