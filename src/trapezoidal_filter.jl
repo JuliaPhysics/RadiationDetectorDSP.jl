@@ -106,28 +106,14 @@ end
     return y
 end
 
-
-@kernel function _trapezoidal_filter_kernel!(Y::AbstractArray{<:RealQuantity}, X::AbstractArray{<:RealQuantity}, T, navg, ngap, n_input)
-    idxs = @index(Global, NTuple)
-    fi = TrapezoidalChargeFilterInstance{T}(navg, ngap, n_input)
-    rdfilt!(view(Y, :, idxs...), fi, view(X, :, idxs...))
-end
-
 function bc_rdfilt!(
-    outputs::AbstractVector{<:AbstractSamples},
-    fi::TrapezoidalChargeFilterInstance{T},
-    inputs::AbstractVector{<:AbstractSamples}
-) where T
-    X = flatview(inputs)
-    Y = flatview(outputs)
-    @argcheck Base.tail(axes(X)) == Base.tail(axes(Y))
-
-    dev = KernelAbstractions.get_device(Y)
-    kernel! = _trapezoidal_filter_kernel!(dev)
-    evt = kernel!(Y, X, T, fi.navg, fi.ngap, fi.n_input, ndrange=Base.tail(size(Y))) 
-    wait(evt)
-    return outputs
+    outputs::ArrayOfSimilarVectors{<:RealQuantity},
+    fi::TrapezoidalChargeFilterInstance,
+    inputs::ArrayOfSimilarVectors{<:RealQuantity}
+)
+    _ka_bc_rdfilt!(outputs, fi, inputs)
 end
+
 
 
 flt_output_smpltype(fi::TrapezoidalChargeFilterInstance) = flt_input_smpltype(fi)

@@ -102,26 +102,12 @@ end
 end
 
 
-@kernel function _firstorder_kernel!(Y::AbstractArray{<:RealQuantity}, X::AbstractArray{<:RealQuantity}, b_01, a_1, n)
-    idxs = @index(Global, NTuple)
-    fi = FirstOrderIIRInstance(b_01, a_1, n)
-    rdfilt!(view(Y, :, idxs...), fi, view(X, :, idxs...))
-end
-
 function bc_rdfilt!(
-    outputs::AbstractVector{<:AbstractSamples},
+    outputs::ArrayOfSimilarVectors{<:RealQuantity},
     fi::FirstOrderIIRInstance,
-    inputs::AbstractVector{<:AbstractSamples}
+    inputs::ArrayOfSimilarVectors{<:RealQuantity}
 )
-    X = flatview(inputs)
-    Y = flatview(outputs)
-    @argcheck Base.tail(axes(X)) == Base.tail(axes(Y))
-
-    dev = KernelAbstractions.get_device(Y)
-    kernel! = _firstorder_kernel!(dev)
-    evt = kernel!(Y, X, fi.b_01, fi.a_1, fi.n, ndrange=Base.tail(size(Y))) 
-    wait(evt)
-    return outputs
+    _ka_bc_rdfilt!(outputs, fi, inputs)
 end
 
 

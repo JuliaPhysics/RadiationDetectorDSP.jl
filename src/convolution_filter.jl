@@ -113,7 +113,10 @@ _filterlen(fi::DirectConvFilterInstance) = size(fi.reverse_h, 1)
 end
 
 
-@kernel function _direct_conv_kernel!(Y::AbstractArray{<:RealQuantity}, X::AbstractArray{<:RealQuantity}, reverse_h, n_input)
+@kernel function _direct_conv_kernel!(
+    Y::AbstractArray{<:RealQuantity,N}, @Const(X::AbstractArray{<:RealQuantity,N}),
+    @Const(reverse_h::AbstractArray{<:RealQuantity},N), n_input::Int
+) where N
     idxs = @index(Global, NTuple)
     fi = DirectConvFilterInstance(reverse_h, n_input)
     rdfilt!(view(Y, :, idxs...), fi, view(X, :, idxs...))

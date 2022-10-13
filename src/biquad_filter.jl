@@ -84,27 +84,12 @@ end
     Y
 end
 
-
-@kernel function _biquad_kernel(Y::AbstractArray{<:RealQuantity}, X::AbstractArray{<:RealQuantity}, b_012, a_12, n)
-    idxs = @index(Global, NTuple)
-    fi = BiquadFilterInstance(b_012, a_12, n)
-    rdfilt!(view(Y, :, idxs...), fi, view(X, :, idxs...))
-end
-
 function bc_rdfilt!(
-    outputs::AbstractVector{<:AbstractSamples},
+    outputs::ArrayOfSimilarVectors{<:RealQuantity},
     fi::BiquadFilterInstance,
-    inputs::AbstractVector{<:AbstractSamples}
+    inputs::ArrayOfSimilarVectors{<:RealQuantity}
 )
-    X = flatview(inputs)
-    Y = flatview(outputs)
-    @argcheck Base.tail(axes(X)) == Base.tail(axes(Y))
-
-    dev = KernelAbstractions.get_device(Y)
-    kernel! = _biquad_kernel(dev)
-    evt = kernel!(Y, X, fi.b_012, fi.a_12, fi.n, ndrange=Base.tail(size(Y))) 
-    wait(evt)
-    return outputs
+    _ka_bc_rdfilt!(outputs, fi, inputs)
 end
 
 
