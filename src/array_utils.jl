@@ -52,3 +52,17 @@ end
 @inline function _inneraxes(A::FillArrays.Fill{<:AbstractArray})
     axes(A.value)
 end
+
+
+# ToDo: Replace _to_same_device_as workaround as soon as ArrayInferface
+# and Adapt have proper support for computing devices:
+
+_to_same_device_as(::T, Y::T) where T = Y
+_to_same_device_as(::Array, Y::Array) = Y
+_to_same_device_as(::Array, Y::SubArray{Float32,1,<:Array}) = Y
+
+function _to_same_device_as(X, Y)
+    new_Y = similar(X, eltype(Y), size(Y))
+    copy!(new_Y, Y)
+    return new_Y
+end
