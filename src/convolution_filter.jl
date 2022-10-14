@@ -171,11 +171,8 @@ function bc_rdfilt(
 ) where N
     T_out = flt_output_smpltype(fi)
     X = flatview(inputs)
-    rfft_h = similar(X, eltype(fi.rfft_h), size(fi.rfft_h))
-    copy!(rfft_h, fi.rfft_h)
-    @info "XXXXXXXXXX" typeof(X) typeof(rfft_h)
-    return
-    Y = irfft(rfft(X, 1) .* fi.rfft_h, size(X, 1), 1)
+    rfft_h = _to_same_device_as(X, fi.rfft_h) # ToDo: Try to avoid this, significant overhead on GPU
+    Y = irfft(rfft(X, 1) .* rfft_h, size(X, 1), 1)
     valid_range = (first(axes(Y, 1)) + fi.n_filter - 1):last(axes(Y, 1))
     flat_output = Y[valid_range, :]
     ArrayOfSimilarArrays{T_out,1,N}(flat_output)
