@@ -46,9 +46,9 @@ function InverseFunctions.inverse(flt::BiquadFilter)
 end
 
 
-function DSP.Biquad(flt::BiquadFilter{T}) where {T<:RealQuantity}
-    DSP.Biquad(map(T, flt.b_012)..., map(T, flt.a_12)...)
-end
+#function DSP.Biquad(flt::BiquadFilter{T}) where {T<:RealQuantity}
+#    DSP.Biquad(map(T, flt.b_012)..., map(T, flt.a_12)...)
+#end
 
 
 

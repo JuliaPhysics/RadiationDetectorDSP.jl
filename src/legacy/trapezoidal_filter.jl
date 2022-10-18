@@ -1,6 +1,9 @@
 # This file is a part of RadiationDetectorDSP.jl, licensed under the MIT License (MIT).
 
 
+const RealOrSIMD{T<:Real} = Union{T,<:SIMD.Vec{N,<:T} where N}
+
+
 """
     charge_trapflt!(samples::AbstractVector{<:RealOrSIMD{<:AbstractFloat}}, navg::Integer, ngap::Integer)
 

@@ -7,7 +7,6 @@ using Unitful
 using RadiationDetectorSignals, ArraysOfArrays, FillArrays
 using InverseFunctions
 using Adapt
-using DSP
 
 using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
@@ -66,8 +65,8 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
     @test isapprox(@inferred(inverse(flt)(y)), x, rtol = 1e-3)
 
-    @test @inferred(DSP.Biquad(flt)) isa DSP.Biquad
-    @test DSP.filt(DSP.Biquad(flt), x) ≈ flt(x)
+    #@test @inferred(DSP.Biquad(flt)) isa DSP.Biquad
+    #@test DSP.filt(DSP.Biquad(flt), x) ≈ flt(x)
 
     Y = similar(X)
     fill!.(Y, NaN)

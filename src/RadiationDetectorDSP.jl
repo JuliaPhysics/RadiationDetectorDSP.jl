@@ -12,30 +12,25 @@ using Adapt
 using ArgCheck
 using ArraysOfArrays
 using CompositionsBase
-using Distributions
 using DocStringExtensions
-using DSP
 using ElasticArrays
 using FFTW
 using FillArrays
 using FunctionChains
-using GPUArrays
 using KernelAbstractions
 using InverseFunctions
 using Parameters
 using RadiationDetectorSignals
-using RecipesBase
-using SIMD
-using StaticArrays
 using StatsBase
 using TypedTables
 using UnPack
 using Unitful
 
 import ChainRulesCore
+import DSP
+import SIMD
 
 
-include("util.jl")
 include("array_utils.jl")
 include("samples.jl")
 include("legacy/filters.jl")

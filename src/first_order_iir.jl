@@ -66,9 +66,9 @@ function BiquadFilter(flt::FirstOrderIIR{T}) where {T<:RealQuantity}
     BiquadFilter((flt.b_01..., T(0)), (flt.a_1..., T(0)))
 end
 
-function DSP.Biquad(flt::FirstOrderIIR{T}) where {T<:RealQuantity}
-    DSP.Biquad(map(T, flt.b_01)..., T(0), map(T, flt.a_1)..., T(0))
-end
+#function DSP.Biquad(flt::FirstOrderIIR{T}) where {T<:RealQuantity}
+#    DSP.Biquad(map(T, flt.b_01)..., T(0), map(T, flt.a_1)..., T(0))
+#end
 
 
 
