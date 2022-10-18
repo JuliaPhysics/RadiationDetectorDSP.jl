@@ -4,28 +4,44 @@ __precompile__(true)
 
 module RadiationDetectorDSP
 
+using LinearAlgebra
+using Random
+using Statistics
+
+using Adapt
 using ArgCheck
 using ArraysOfArrays
-using Distributions
-using DSP
+using CompositionsBase
+using DocStringExtensions
 using ElasticArrays
-using LinearAlgebra
-using ParallelProcessingTools
+using FFTW
+using FillArrays
+using FunctionChains
+using KernelAbstractions
+using InverseFunctions
 using Parameters
 using RadiationDetectorSignals
-using Random
-using RecipesBase
-using SIMD
-using StaticArrays
-using Statistics
 using StatsBase
 using TypedTables
+using UnPack
+using Unitful
 
-include("util.jl")
+import ChainRulesCore
+import DSP
+import SIMD
+
+
+include("array_utils.jl")
 include("samples.jl")
-include("filters.jl")
+include("legacy/filters.jl")
+include("legacy/trapezoidal_filter.jl")
+include("legacy/generators.jl")
+include("filter.jl")
+include("convolution_filter.jl")
+include("biquad_filter.jl")
+include("first_order_iir.jl")
+include("circuit_filters.jl")
 include("trapezoidal_filter.jl")
-include("generators.jl")
-include("zac.jl")
+include("zac_filter.jl")
 
 end # module

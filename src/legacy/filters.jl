@@ -9,60 +9,72 @@ Return a DSP.jl-compatible RC-filter.
 function rc_filter(RC::Real)
     T = float(typeof(RC))
     α = 1 / (1 + RC)
-    Biquad(T(α), T(0), T(0), T(α - 1), T(0))
+    DSP.Biquad(T(α), T(0), T(0), T(α - 1), T(0))
 end
 export rc_filter
 
 
 """
-    cr_filter(RC::Real)
+    inv_rc_filter(RC::Real)
+
+Return a DSP.jl-compatible RC-filter.
+"""
+function inv_rc_filter(RC::Real)
+    T = float(typeof(RC))
+    k = 1 + RC
+    DSP.Biquad(T(k), T(1 - k), T(0), T(0), T(0))
+end
+export inv_rc_filter
+
+
+"""
+    cr_filter(CR::Real)
 
 Return a DSP.jl-compatible CR-filter.
 """
-function cr_filter(RC::Real)
-    T = float(typeof(RC))
-    α = RC / (RC + 1)
-    Biquad(T(α), T(-α), T(0), T(-α), T(0))
+function cr_filter(CR::Real)
+    T = float(typeof(CR))
+    α = CR / (CR + 1)
+    DSP.Biquad(T(α), T(-α), T(0), T(-α), T(0))
 end
 export cr_filter
 
 
 """
-    inv_cr_filter(RC::Real)
+    inv_cr_filter(CR::Real)
 
 Return a DSP.jl-compatible inverse CR-filter.
 """
-function inv_cr_filter(RC::Real)
-    T = float(typeof(RC))
-    α = 1 / (1 + RC)
-    k = 1 + 1/RC
-    Biquad(T(k), T(k * (α - 1)), T(0), T(-1), T(0))
+function inv_cr_filter(CR::Real)
+    T = float(typeof(CR))
+    k = 1 + inv(CR) # equivalent to k = -1 / (α - 1)
+    DSP.Biquad(T(k), T(-1), T(0), T(-1), T(0))
 end
 export inv_cr_filter
 
 
 """
-    crmod_filter(RC::Real)
+    crmod_filter(CR::Real)
 
 Return a DSP.jl-compatible modified CR-filter.
 """
-function crmod_filter(RC::Real)
-    T = float(typeof(RC))
-    α = RC / (RC + 1)
-    Biquad(T(1), T(-1), T(0), T(-α), T(0))
+function crmod_filter(CR::Real)
+    T = float(typeof(CR))
+    k = CR / (CR + 1)
+    DSP.Biquad(T(1), T(-1), T(0), T(-k), T(0))
 end
 export crmod_filter
 
 
 """
-    inv_crmod_filter(RC::Real)
+    inv_crmod_filter(CR::Real)
 
 Return a DSP.jl-compatible inverse modified CR-filter.
 """
-function inv_crmod_filter(RC::Real)
-    T = float(typeof(RC))
-    α = 1 / (1 + RC)
-    Biquad(T(1), T(α - 1), T(0), T(-1), T(0))
+function inv_crmod_filter(CR::Real)
+    T = float(typeof(CR))
+    α = 1 / (1 + CR)
+    DSP.Biquad(T(1), T(α - 1), T(0), T(-1), T(0))
 end
 export inv_crmod_filter
 
@@ -74,7 +86,7 @@ Return a DSP.jl-compatible integrator filter.
 """
 function integrator_filter(gain::Real)
     T = float(typeof(gain))
-    Biquad(T(gain), T(0), T(0), T(-1), T(0))
+    DSP.Biquad(T(gain), T(0), T(0), T(-1), T(0))
 end
 export integrator_filter
 
@@ -86,33 +98,33 @@ Return a DSP.jl-compatible differentiator filter.
 """
 function differentiator_filter(gain::Real)
     T = float(typeof(gain))
-    Biquad(T(gain), T(-gain), T(0), T(0), T(0))
+    DSP.Biquad(T(gain), T(-gain), T(0), T(0), T(0))
 end
 export differentiator_filter
 
 
 """
-    integrator_cr_filter(gain::Real, RC::Real)  
+    integrator_cr_filter(gain::Real, CR::Real)  
 
 Return a DSP.jl-compatible integrator plus CR filter.
 """
-function integrator_cr_filter(gain::Real, RC::Real)
-    T = float(promote_type(typeof(gain), typeof(RC)))
-    α = 1 / (1 + RC)
-    Biquad(T(gain), T(-α), T(0), T(α - 1), T(0))
+function integrator_cr_filter(gain::Real, CR::Real)
+    T = float(promote_type(typeof(gain), typeof(CR)))
+    α = 1 / (1 + CR)
+    DSP.Biquad(T(gain), T(-α), T(0), T(α - 1), T(0))
 end
 export integrator_cr_filter
 
 
 """
-    integrator_crmod_filter(gain::Real, RC::Real)
+    integrator_crmod_filter(gain::Real, CR::Real)
 
 Return a DSP.jl-compatible integrator plus modified CR filter.
 """
-function integrator_crmod_filter(gain::Real, RC::Real)
-    T = float(promote_type(typeof(gain), typeof(RC)))
-    α = 1 / (1 + RC)
-    Biquad(T(gain), T(0), T(0), T(α - 1), T(0))
+function integrator_crmod_filter(gain::Real, CR::Real)
+    T = float(promote_type(typeof(gain), typeof(CR)))
+    α = 1 / (1 + CR)
+    DSP.Biquad(T(gain), T(0), T(0), T(α - 1), T(0))
 end
 export integrator_crmod_filter
 

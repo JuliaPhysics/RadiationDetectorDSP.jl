@@ -5,7 +5,11 @@ import RadiationDetectorDSP
 import Documenter
 
 Test.@testset "Package RadiationDetectorDSP" begin
-    include("test_filters.jl")
+    include("legacy/test_filters.jl")
+    include("test_convolution_filter.jl")
+    include("test_biquad_filter.jl")
+    include("test_circuit_filters.jl")
+    include("test_trapezoidal_filter.jl")
 
     # doctests
     Documenter.DocMeta.setdocmeta!(
