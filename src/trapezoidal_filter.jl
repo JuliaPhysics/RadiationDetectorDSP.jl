@@ -59,9 +59,9 @@ end
 function fltinstance(flt::TrapezoidalChargeFilter, si::SamplingInfo{T}) where {T <: RealQuantity} 
     delta_t = step(si.axis)
 
-    navg  = round(Int, uconvert(NoUnits, flt.avgtime  / delta_t))
+    navg2  = round(Int, uconvert(NoUnits, flt.avgtime  / delta_t))
     ngap  = round(Int, uconvert(NoUnits, flt.gaptime  / delta_t))
-    navg2 = round(Int, uconvert(NoUnits, flt.avgtime2 / delta_t))
+    navg = round(Int, uconvert(NoUnits, flt.avgtime2 / delta_t))
 
     navg >= 1 && ngap >= 0 && navg2 >= 1 || throw(ArgumentError("Require navg/navg2 >= 1 and ngap >= 0"))
     (navg + ngap + navg2) <= _smpllen(si) || throw(ArgumentError("filter must not be longer than input"))
@@ -95,8 +95,9 @@ end
         @assert firstindex(y) == firstindex(x)
         @assert lastindex(y) == lastindex(x) - _filterlen(fi) + 1
 
-        # norm_factor = inv(T(navg))*T(navg2)
         norm_factor = inv(T(navg))
+        # println(norm_factor)
+        norm_factor2 = inv(T(navg2))
         acc::T = zero(T)
 
         offs1 = 0
@@ -108,12 +109,17 @@ end
 
         @inbounds @simd for i in firstindex(x):(firstindex(x) + navg - 1)
             #@info "YYYY" i + offs1 i + offs3
-            acc = acc - x[i + offs1] + x[i + offs3]
+            # acc = acc + x[i + offs1] - x[i + offs3]
+            acc = acc + x[i + offs1] * norm_factor - x[i + offs3] * norm_factor
         end
-        y[firstindex(y)] = acc * norm_factor
+        # y[firstindex(y)] = acc * norm_factor
+        y[firstindex(y)] = acc
         @inbounds @simd for i in firstindex(x):(lastindex(x) - offs4)
-            acc = acc + x[i + offs1] - x[i + offs2] - x[i + offs3] + x[i + offs4]
-            y[i + 1] = acc * norm_factor
+            # acc = acc + (x[i + offs1] - x[i + offs2]) * norm_factor - (x[i + offs3] - x[i + offs4]) * norm_factor2
+            acc = acc + (x[i + offs1] - x[i + offs2]) * norm_factor - (x[i + offs3] - x[i + offs4]) * norm_factor2
+            # acc = acc + x[i + offs1] - x[i + offs2] - x[i + offs3] + x[i + offs4]
+            # y[i + 1] = acc * norm_factor2
+            y[i + 1] = acc
         end
     end
 
