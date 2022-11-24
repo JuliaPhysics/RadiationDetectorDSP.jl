@@ -44,14 +44,18 @@ export TrapezoidalChargeFilter
 Adapt.adapt_structure(to, flt::TrapezoidalChargeFilter) = flt
 
 function ConvolutionFilter(flt::TrapezoidalChargeFilter)
-    navg  = Int(flt.avgtime)
-    navg2 = Int(flt.avgtime2)
-    ngap  = Int(flt.gaptime)
+    navg2 = Int(flt.avgtime)
+    navg = Int(flt.avgtime2)
+    ngap = Int(flt.gaptime)
     norm_factor = inv(navg)
+    norm_factor2 = inv(navg2)
     T = typeof(norm_factor)
     params = zeros(T, navg + ngap + navg2)
     fill!(view(params, firstindex(params):(firstindex(params)+navg-1)), +norm_factor)
-    fill!(view(params, firstindex(params)+navg+ngap:lastindex(params)), -norm_factor)
+    # fill!(view(params, firstindex(params)+navg+ngap:lastindex(params)), (norm_factor2 * navg2 - norm_factor * navg) / (navg + ngap + navg2))
+    # fill!(view(params, firstindex(params)+navg+ngap:lastindex(params)), (norm_factor2-norm_factor) / (navg + ngap + navg2))
+    # fill!(view(params, firstindex(params)+navg+ngap:lastindex(params)), -norm_factor+norm_factor2)
+    fill!(view(params, firstindex(params)+navg+ngap:lastindex(params)), -norm_factor2)
     ConvolutionFilter(FFTConvolution(), params)
 end
 
@@ -59,9 +63,9 @@ end
 function fltinstance(flt::TrapezoidalChargeFilter, si::SamplingInfo{T}) where {T <: RealQuantity} 
     delta_t = step(si.axis)
 
-    navg2  = round(Int, uconvert(NoUnits, flt.avgtime  / delta_t))
+    navg  = round(Int, uconvert(NoUnits, flt.avgtime  / delta_t))
     ngap  = round(Int, uconvert(NoUnits, flt.gaptime  / delta_t))
-    navg = round(Int, uconvert(NoUnits, flt.avgtime2 / delta_t))
+    navg2 = round(Int, uconvert(NoUnits, flt.avgtime2 / delta_t))
 
     navg >= 1 && ngap >= 0 && navg2 >= 1 || throw(ArgumentError("Require navg/navg2 >= 1 and ngap >= 0"))
     (navg + ngap + navg2) <= _smpllen(si) || throw(ArgumentError("filter must not be longer than input"))
@@ -88,8 +92,8 @@ end
 
 @inline function rdfilt!(y::AbstractVector{T}, fi::TrapezoidalChargeFilterInstance{U}, x::AbstractVector{U}) where {T<:Real, U<:Real}
     @fastmath begin
-        navg  = fi.navg
-        navg2 = fi.navg2
+        navg2  = fi.navg
+        navg = fi.navg2
         ngap  = fi.ngap
 
         @assert firstindex(y) == firstindex(x)
