@@ -17,6 +17,7 @@ using ElasticArrays
 using FFTW
 using FillArrays
 using FunctionChains
+using IntervalSets
 using KernelAbstractions
 using InverseFunctions
 using Parameters
