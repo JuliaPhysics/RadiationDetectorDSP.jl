@@ -9,6 +9,7 @@ using InverseFunctions
 using Adapt
 
 using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
+using RadiationDetectorDSP: bc_rdfunc
 
 
 function gen_test_waveforms()
@@ -78,4 +79,36 @@ function test_filter(flt, uflt, wfs_x, wfs_y_ref)
     @test @inferred(broadcast(uflt, wfs_x)) ≈ wfs_y_ref
     #@test typeof(broadcast(fi, wfs_x)) == typeof(wfs_y_ref)
     @test typeof(broadcast(uflt, wfs_x)) == typeof(wfs_y_ref)
+end
+
+
+
+
+function test_functional(func, ufunc, wfs_x, Y_ref)
+    @test @inferred(adapt(Array, func)) isa getfield(parentmodule(typeof(func)), nameof(typeof(func)))
+    @test @inferred(adapt(Array, ufunc)) isa getfield(parentmodule(typeof(ufunc)), nameof(typeof(ufunc)))
+
+    wf_x = wfs_x[1]
+    x = wf_x.signal
+
+    wf_y_ref = wfs_y_ref[1]
+    y_ref = Y_ref[1]
+
+    X = wfs_x.signal
+
+    fi = @inferred funcinstance(func, smplinfo(x))
+
+    @test @inferred(rdfilt(fi, x)) ≈ y_ref
+    @test @inferred(func(x)) ≈ y_ref
+
+    @test @inferred(rdfilt(fi, wf_x)) ≈ y_ref
+    @test @inferred(ufunc(wf_x)) ≈ y_ref
+
+    @test @inferred(bc_rdfunc(fi, X)) ≈ Y_ref
+    @test @inferred(broadcast(func, X)) ≈ Y_ref
+    @test typeof(broadcast(func, X)) == typeof(Y_ref)
+
+    @test @inferred(bc_rdfunc(fi, wfs_x)) ≈ Y_ref
+    @test @inferred(broadcast(ufunc, wfs_x)) ≈ Y_ref
+    @test typeof(broadcast(ufunc, wfs_x)) == typeof(Y_ref)
 end
