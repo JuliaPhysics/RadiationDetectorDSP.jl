@@ -10,6 +10,8 @@ using Adapt
 
 using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
+import DSP
+
 
 @testset "ConvolutionFilter" begin
     for convmethod in [DirectConvolution(), FFTConvolution()]

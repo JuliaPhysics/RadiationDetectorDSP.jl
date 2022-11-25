@@ -51,7 +51,12 @@ Base.@kwdef struct ConvolutionFilter{C<:ConvolutionMethod,T<:RealQuantity,TV<:Ab
 
     "Filter taps"
     coeffs::TV
+
+    "Time axis offset"
+    offset::Int = 0 
 end
+
+ConvolutionFilter(method::ConvolutionMethod, coeffs::AbstractVector{<:RealQuantity}) = ConvolutionFilter(method, coeffs, 0)
 
 export ConvolutionFilter
 
@@ -59,7 +64,7 @@ Adapt.adapt_structure(to, flt::ConvolutionFilter) = ConvolutionFilter(flt.method
 
 function fltinstance(flt::ConvolutionFilter{DirectConvolution}, si::SamplingInfo{T}) where T
     reverse_h = reverse(T.(flt.coeffs)) # ToDo: Optimize
-    DirectConvFilterInstance(reverse_h, _smpllen(si))
+    DirectConvFilterInstance(reverse_h, _smpllen(si), flt.offset)
 end
 
 function fltinstance(flt::ConvolutionFilter{FFTConvolution}, si::SamplingInfo{T}) where T
@@ -68,7 +73,7 @@ function fltinstance(flt::ConvolutionFilter{FFTConvolution}, si::SamplingInfo{T}
     fill!(h_ext, zero(eltype(h_ext)))
     copy!(view(h_ext, firstindex(h_ext):(firstindex(h_ext) + n_filter - 1)), flt.coeffs)
     rfft_h = rfft(h_ext)
-    FFTConvFilterInstance(rfft_h, n_filter)
+    FFTConvFilterInstance(rfft_h, n_filter, flt.offset)
 end
 
 
@@ -84,7 +89,7 @@ flt_output_length(fi::AbstractConvFilterInstance) = flt_input_length(fi) - _filt
 flt_input_length(fi::AbstractConvFilterInstance) = fi.n_input
 
 function flt_output_time_axis(fi::AbstractConvFilterInstance, time::AbstractVector{<:RealQuantity})
-    valid_range = (firstindex(time) + _filterlen(fi) - 1):lastindex(time)
+    valid_range = (firstindex(time) + _filterlen(fi) - 1 + fi.offset):(lastindex(time) + fi.offset)
     time[valid_range]
 end
 
@@ -93,6 +98,7 @@ end
 struct DirectConvFilterInstance{T<:Real,TV<:AbstractVector{T}} <: AbstractConvFilterInstance{T}
     reverse_h::TV
     n_input::Int
+    offset::Int
 end
 
 _filterlen(fi::DirectConvFilterInstance) = size(fi.reverse_h, 1)
@@ -115,10 +121,10 @@ end
 
 @kernel function _direct_conv_kernel!(
     Y::AbstractArray{<:RealQuantity,N}, @Const(X::AbstractArray{<:RealQuantity,N}),
-    @Const(reverse_h::AbstractArray{<:RealQuantity},N), n_input::Int
+    @Const(reverse_h::AbstractArray{<:RealQuantity},N), n_input::Int, offset::Int
 ) where N
     idxs = @index(Global, NTuple)
-    fi = DirectConvFilterInstance(reverse_h, n_input)
+    fi = DirectConvFilterInstance(reverse_h, n_input, offset)
     rdfilt!(view(Y, :, idxs...), fi, view(X, :, idxs...))
 end
 
@@ -133,7 +139,7 @@ function bc_rdfilt!(
 
     dev = KernelAbstractions.get_device(Y)
     kernel! = _direct_conv_kernel!(dev)
-    evt = kernel!(Y, X, fi.reverse_h, fi.n_input, ndrange=Base.tail(size(Y))) 
+    evt = kernel!(Y, X, fi.reverse_h, fi.n_input, fi.offset, ndrange=Base.tail(size(Y))) 
     wait(evt)
     return outputs
 end
@@ -142,6 +148,7 @@ end
 struct FFTConvFilterInstance{T<:Real,TV<:AbstractVector{Complex{T}}} <: AbstractConvFilterInstance{T}
     rfft_h::TV
     n_filter::Int
+    offset::Int
 end
 
 _filterlen(fi::FFTConvFilterInstance) = fi.n_filter
