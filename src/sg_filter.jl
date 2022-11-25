@@ -50,9 +50,6 @@ end
 
 using LinearAlgebra
 
-_vandermonde(X::AbstractVector{<:Integer}, degree::Integer) = X .^ (0:degree)'
-_onehot_vec(n::Integer, i::Integer, x::Number) = [ifelse(j == i, x, zero(x)) for j in 1:n]
-
 function sg_filter_coeffs(x_range::AbstractUnitRange{<:Integer}, degree::Integer, deriv::Integer, delta::Real)
     J = _vandermonde(x_range, degree)
     y = _onehot_vec(degree + 1, deriv + 1, factorial(deriv) / delta ^ deriv)

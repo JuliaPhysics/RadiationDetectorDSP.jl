@@ -32,13 +32,17 @@ import DSP
 import SIMD
 
 
-include("array_utils.jl")
 include("samples.jl")
+include("math_utils.jl")
+include("array_utils.jl")
 include("legacy/filters.jl")
 include("legacy/trapezoidal_filter.jl")
 include("legacy/generators.jl")
 include("filter.jl")
 include("global_ops.jl")
+include("signalstats.jl")
+include("lsqfit.jl")
+include("signal_estimator.jl")
 include("truncate_filter.jl")
 include("convolution_filter.jl")
 include("biquad_filter.jl")

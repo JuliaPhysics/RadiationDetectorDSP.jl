@@ -37,6 +37,14 @@ dspfloattype(::Type{T}) where {T} = float(T)
 dspfloattype(::Type{T}) where {T<:Union{Int8,UInt8,Int16,UInt16,Int32,UInt32}} = Float32
 
 
+"""
+    const RadiationDetectorDSP.SamplesOrWaveform{T<:RealQuantity} = Union{AbstractSamples{T},RDWaveform{<:Any,T}}
+
+A vector of signal samples or a waveform.
+"""
+const SamplesOrWaveform{T<:RealQuantity} = Union{AbstractSamples{T},RDWaveform{<:Any,T}}
+
+
 
 """
     struct SamplingInfo{T<:RealQuantity,A<:AbstractVector{<:RealQuantity}}
@@ -96,3 +104,21 @@ elsmplinfo(smpls::AbstractArray{<:AbstractSamples{T}}) where T = SamplingInfo{T}
 elsmplinfo(wfs::AbstractArray{<:RDWaveform{T,U}}) where {T,U} = SamplingInfo{U}(_uniqueelem(map(wf -> wf.time, wfs)))
 
 elsmplinfo(wfs::ArrayOfRDWaveforms{T,U}) where {T,U} = SamplingInfo{U}(_uniqueelem(wfs.time))
+
+
+_get_axis_and_signal(input::RDWaveform) = input.time, input.signal
+_get_axis_and_signal(input::AbstractSamples) = eachindex(input), input
+
+function _get_axis_and_signals(inputs::Ref)
+    X, Y = _get_axis_and_signal(inputs[])
+    return X, Ref(Y)
+end
+
+function _get_axis_and_signals(inputs::Tuple{<:Any})
+    X, Y = _get_axis_and_signal(inputs[1])
+    return X, (Y,)
+end
+
+_get_axis_and_signals(inputs::AbstractArray{<:AbstractSamples}) = elsmplinfo(inputs).axis, inputs
+_get_axis_and_signals(inputs::ArrayOfRDWaveforms) = elsmplinfo(inputs).axis, inputs.signal
+_get_axis_and_signals(inputs::AbstractArray{<:RDWaveform}) = _get_axis_and_signals(ArrayOfRDWaveforms(inputs))
