@@ -44,6 +44,7 @@ include("biquad_filter.jl")
 include("first_order_iir.jl")
 include("circuit_filters.jl")
 include("trapezoidal_filter.jl")
+include("sg_filter.jl")
 include("zac_filter.jl")
 
 end # module
