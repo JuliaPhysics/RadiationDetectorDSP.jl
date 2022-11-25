@@ -29,15 +29,10 @@ Base.@kwdef struct TrapezoidalChargeFilter{
     gaptime::T
 
     "post-rise averaging time"
-    avgtime2::T
-    # alternative constructor for symmetric trapezodial filters
-    function TrapezoidalChargeFilter(avgtime::T, gaptime::T) where {T <: RealQuantity} 
-        new{T}(avgtime, gaptime, avgtime)
-    end
-    function TrapezoidalChargeFilter(avgtime::T, gaptime::T, avgtime2::T) where {T <: RealQuantity} 
-        new{T}(avgtime, gaptime, avgtime2)
-    end
+    avgtime2::T = avgtime
 end
+
+TrapezoidalChargeFilter(avgtime::RealQuantity, gaptime::RealQuantity) = TrapezoidalChargeFilter(avgtime, gaptime, avgtime)
 
 export TrapezoidalChargeFilter
 
