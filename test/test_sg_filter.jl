@@ -11,6 +11,12 @@ include("test_utils.jl")
     @test isapprox(RadiationDetectorDSP.sg_filter_coeffs(-3:3, 3, 2, 2.6), [0.0176106, 0.0, -0.0105664, -0.0140885, -0.0105664, 0.0, 0.0176106], rtol = 10^-5, atol = 10^-10)
     @test isapprox(RadiationDetectorDSP.sg_filter_coeffs(-3:3, 3, 4, 2.6), [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], rtol = 10^-5, atol = 10^-10)    
 
+    @test @inferred(RadiationDetectorDSP.sg_filter_coeffs(-2:2, 2, 0)) ≈ @inferred(RadiationDetectorDSP.sg_filter_coeffs(-2:2, 2, 0, 1))
+    @test @inferred(RadiationDetectorDSP.sg_filter_coeffs(-2:2, 2, 1)) ≈ @inferred(RadiationDetectorDSP.sg_filter_coeffs(-2:2, 2, 1, 1))
+    @test @inferred(RadiationDetectorDSP.sg_filter_coeffs(-3:3, 3, 2)) ≈ @inferred(RadiationDetectorDSP.sg_filter_coeffs(-3:3, 3, 2, 1))
+    @test @inferred(RadiationDetectorDSP.sg_filter_coeffs(-4:4, 3, 3)) ≈ @inferred(RadiationDetectorDSP.sg_filter_coeffs(-4:4, 3, 3, 1))
+
+
     flt = SavitzkyGolayFilter(7, 3, 2)
     uflt = SavitzkyGolayFilter(10.3u"ns", 3, 2)
     wfs_x = gen_test_waveforms()

@@ -43,15 +43,24 @@ end
 function ConvolutionFilter(flt::SavitzkyGolayFilter)
     rmin = - div(Int(flt.length), 2)
     rmax = flt.length + rmin - 1
-    coeffs = RadiationDetectorDSP.sg_filter_coeffs(rmin:rmax, flt.degree, flt.derivative, 1)
+    coeffs = RadiationDetectorDSP.sg_filter_coeffs(rmin:rmax, flt.degree, flt.derivative)
     ConvolutionFilter(DirectConvolution(), coeffs, rmin)
 end
 
 
 using LinearAlgebra
 
+_vandermonde(X::AbstractVector{<:Integer}, degree::Integer) = X .^ (0:degree)'
+_onehot_vec(n::Integer, i::Integer, x::Number) = [ifelse(j == i, x, zero(x)) for j in 1:n]
+
 function sg_filter_coeffs(x_range::AbstractUnitRange{<:Integer}, degree::Integer, deriv::Integer, delta::Real)
-    J = x_range .^ (0:degree)'
-    y = float.((0:degree) .== deriv)  .* (factorial(deriv) / delta ^ deriv)
+    J = _vandermonde(x_range, degree)
+    y = _onehot_vec(degree + 1, deriv + 1, factorial(deriv) / delta ^ deriv)
+    J' \ y
+end
+
+function sg_filter_coeffs(x_range::AbstractUnitRange{<:Integer}, degree::Integer, deriv::Integer)
+    J = _vandermonde(x_range, degree)
+    y = _onehot_vec(degree + 1, deriv + 1, factorial(deriv))
     J' \ y
 end
