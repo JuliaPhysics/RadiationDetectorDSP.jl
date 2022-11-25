@@ -16,9 +16,6 @@ Constructors:
 Fields:
 
 $(TYPEDFIELDS)
-
-A sharp step on the input will result in a trapezoid with rise time and fall
-time `avgtime` and a flat top of length `gaptime`.
 """
 @with_kw struct ZACChargeFilter{
     T <: RealQuantity
