@@ -7,8 +7,9 @@
 A first-order RC lowpass filter.
 
 The inverse filter is [`InvCRFilter`](@ref), but note that this is unstable
-in the presence of additional noise and so will typically not be useful to
-deconvolve signals in practical applications.
+in the presence of additional noise. As an RC filter attenuates
+high-frequency noise, its inverse amplifies such noise and will typically not
+be useful to deconvolve signals in practical applications.
 
 Constructors:
 
@@ -81,7 +82,9 @@ end
 A first-order CR highpass filter.
 
 The inverse filter is [`InvCRFilter`](@ref), this is typically stable even in
-the presence of additional noise.
+the presence of additional noise. This is because a CR filter passes
+high-frequency noise and so it's inverse passes such noise as well without
+amplifying it.
 
 Constructors:
 
@@ -158,7 +161,7 @@ still has a finite rise time. This version of a CR filter compensates for
 this loss in amplitude, so it effectively treats a step as having
 
 The inverse filter is [`InvModCRFilter`](@ref), this is typically stable even in
-the presence of additional noise.
+the presence of additional noise (see [`CRFilter`](@ref)).
 
 Constructors:
 
