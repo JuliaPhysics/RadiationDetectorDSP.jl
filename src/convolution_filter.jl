@@ -138,7 +138,7 @@ function bc_rdfilt!(
     @argcheck Base.tail(axes(X)) == Base.tail(axes(Y))
 
     dev = KernelAbstractions.get_device(Y)
-    kernel! = _direct_conv_kernel!(dev)
+    kernel! = _direct_conv_kernel!(dev, _ka_threads(dev)...)
     evt = kernel!(Y, X, fi.reverse_h, fi.n_input, fi.offset, ndrange=Base.tail(size(Y))) 
     wait(evt)
     return outputs

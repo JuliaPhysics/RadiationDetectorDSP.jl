@@ -102,7 +102,7 @@ function bc_lsqfitat!(
     A_slqfit = _to_same_device_as(flat_Ys, A_slqfit_tmp)
 
     dev = KernelAbstractions.get_device(flat_Ys)
-    kernel! = _lsqfitatpos_kernel4!(dev)
+    kernel! = _lsqfitatpos_kernel4!(dev, _ka_threads(dev)...)
     evt = kernel!(Y_est, A_slqfit, X_axis, flat_Ys, X_pos, ndrange=_kbc_size(size(Y_est)))
     wait(evt)
     return _kbc_result(Y_est)

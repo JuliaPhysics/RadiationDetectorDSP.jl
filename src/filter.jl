@@ -254,6 +254,9 @@ end
     rdfilt!(view(Y, :, idxs...), fi, view(X, :, idxs...))
 end
 
+_ka_threads(::KernelAbstractions.CPU) = (Base.Threads.nthreads(),)
+_ka_threads(::KernelAbstractions.Device) = ()
+
 function _ka_bc_rdfilt!(
     outputs::ArrayOfSimilarVectors{<:RealQuantity},
     fi::AbstractRadSigFilterInstance,
@@ -264,7 +267,7 @@ function _ka_bc_rdfilt!(
     @argcheck Base.tail(axes(X)) == Base.tail(axes(Y))
 
     dev = KernelAbstractions.get_device(Y)
-    kernel! = _ka_filter_kernel!(dev)
+    kernel! = _ka_filter_kernel!(dev, _ka_threads(dev)...)
     evt = kernel!(Y, X, fi, ndrange=Base.tail(size(Y))) 
     wait(evt)
     return outputs
