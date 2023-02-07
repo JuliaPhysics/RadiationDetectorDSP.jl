@@ -205,7 +205,8 @@ function bc_rdfilt(
 ) where {M,N}
     T_out = flt_output_smpltype(fi)
     n_out = flt_output_length(fi)
-    flat_output = similar(flatview(inputs), T_out, n_out, size(inputs)...)
+    flat_inputs = flatview(inputs)
+    flat_output = _similar_memlayout(flat_inputs, T_out, (n_out, size(inputs)...))
     outputs = ArrayOfSimilarArrays{T_out,M,N}(flat_output)
     bc_rdfilt!(outputs, fi, inputs)
 end

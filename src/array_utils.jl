@@ -41,6 +41,10 @@ end
 end
 
 
+_similar_memlayout(A::AbstractArray{<:T}, ::Type{U}, sz::Dims) where {T<:Real,U<:Real} = similar(A, U, sz)
+_similar_memlayout(A::LinearAlgebra.Transpose{<:T}, ::Type{U}, sz::Dims) where {T<:Real,U<:Real} = transpose(similar(A, U, reverse(sz)))
+
+
 # ToDo: Replace _to_same_device_as workaround as soon as ArrayInferface
 # and Adapt have proper support for computing devices:
 
