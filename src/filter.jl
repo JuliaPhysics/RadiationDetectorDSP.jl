@@ -185,6 +185,24 @@ end
 
 
 """
+    RadiationDetectorDSP::adapt_memlayout(
+        fi::AbstractRadSigFilterInstance,
+        dev::KernelAbstractions.Device,
+        A::AbstractArray{<:Number}
+    )
+
+Adapts the memory layout of `A` in a suitable fashion for `fi` on computing
+device `dev`.
+
+Returns a row-major version of `A` on all devices by default, filter instance
+types may specialize this behavior.
+"""
+function adapt_memlayout end
+
+adapt_memlayout(::AbstractRadSigFilterInstance, ::KernelAbstractions.Device, A::AbstractArray{<:Number}) = _col_major(A)
+
+
+"""
     bc_rdfilt(flt::AbstractRadSigFilter, input)
     bc_rdfilt(fi::AbstractRadSigFilterInstance, input)
 
@@ -201,14 +219,17 @@ end
 
 function bc_rdfilt(
     fi::AbstractRadSigFilterInstance,
-    inputs::ArrayOfSimilarArrays{<:RealQuantity,M,N}
-) where {M,N}
+    inputs::ArrayOfSimilarArrays{T_in,M,N}
+) where {T_in<:RealQuantity,M,N}
     T_out = flt_output_smpltype(fi)
     n_out = flt_output_length(fi)
     flat_inputs = flatview(inputs)
-    flat_output = _similar_memlayout(flat_inputs, T_out, (n_out, size(inputs)...))
+    dev = KernelAbstractions.get_device(flat_inputs)
+    new_flat_inputs = adapt_memlayout(fi, dev, flat_inputs)
+    flat_output = _similar_memlayout(new_flat_inputs, T_out, (n_out, size(inputs)...))
+    new_inputs = ArrayOfSimilarArrays{T_in,M,N}(new_flat_inputs)
     outputs = ArrayOfSimilarArrays{T_out,M,N}(flat_output)
-    bc_rdfilt!(outputs, fi, inputs)
+    bc_rdfilt!(outputs, fi, new_inputs)
 end
 
 function bc_rdfilt(

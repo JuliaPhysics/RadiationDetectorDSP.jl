@@ -123,6 +123,9 @@ end
     return y
 end
 
+
+adapt_memlayout(::TrapezoidalChargeFilterInstance, ::GPU, A::AbstractArray{<:Number}) = _row_major(A)
+
 function bc_rdfilt!(
     outputs::ArrayOfSimilarVectors{<:RealQuantity},
     fi::TrapezoidalChargeFilterInstance,

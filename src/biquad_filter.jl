@@ -84,6 +84,9 @@ end
     Y
 end
 
+
+adapt_memlayout(::BiquadFilterInstance, ::GPU, A::AbstractArray{<:Number}) = _row_major(A)
+
 function bc_rdfilt!(
     outputs::ArrayOfSimilarVectors{<:RealQuantity},
     fi::BiquadFilterInstance,
