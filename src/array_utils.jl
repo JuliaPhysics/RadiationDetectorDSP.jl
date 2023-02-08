@@ -100,3 +100,17 @@ _kbc_result(x::AbstractArray{<:Any,0}) = x[]
 const _BC_RQs = Union{AbstractArray{<:RealQuantity}, Ref{<:RealQuantity}, Tuple{<:RealQuantity}, RealQuantity}
 const _BC_RQ_Arrays = Union{AbstractArray{<:AbstractArray{<:RealQuantity}}, Ref{<:AbstractArray{<:RealQuantity}}, Tuple{<:AbstractArray{<:RealQuantity}}}
 const _BC_RQ_AosAs = Union{ArrayOfSimilarArrays{<:RealQuantity}, Ref{<:AbstractArray{<:RealQuantity}}, Tuple{<:AbstractArray{<:RealQuantity}}}
+
+
+"""
+    RadiationDetectorDSP.CPUAdaptor
+
+To be used with `Adapt.adapt`.
+
+`Adapt.adapt(RadiationDetectorDSP.CPUAdaptor, x)` adapts `x` to reside on
+the CPU and tries to ensure that arrays are stored in column-major order.
+"""
+struct CPUAdaptor end
+
+Adapt.adapt_storage(::CPUAdaptor, A::AbstractArray) = adapt(Array, A)
+Adapt.adapt_structure(to::CPUAdaptor, A::LinearAlgebra.Transpose{<:Number}) = adapt(to, _nonlazy_transpose(transpose(A)))
