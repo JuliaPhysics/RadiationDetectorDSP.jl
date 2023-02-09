@@ -60,7 +60,7 @@ end
 
 function __init__()
     @static if !isdefined(Base, :get_extension)
-        @require CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba" include("../ext/CUDAExt.jl")
+        @require CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba" include("../ext/RadiationDetectorDSPCUDAExt.jl")
     end
 end
 

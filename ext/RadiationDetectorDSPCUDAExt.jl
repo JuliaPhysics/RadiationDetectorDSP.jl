@@ -1,6 +1,6 @@
 # This file is a part of RadiationDetectorDSP.jl, licensed under the MIT License (MIT).
 
-module CUDAExt
+module RadiationDetectorDSPCUDAExt
 
 using CUDA
 using RadiationDetectorDSP
@@ -14,4 +14,4 @@ function RadiationDetectorDSP._nonlazy_transpose(A::CuArray{T,2}) where {T<:Numb
 end
 
 
-end # module CUDAExt
+end # module RadiationDetectorDSPCUDAExt

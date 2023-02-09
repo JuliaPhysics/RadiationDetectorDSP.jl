@@ -34,7 +34,7 @@ Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 
 [extensions]
-CUDAExt = "CUDA"
+RadiationDetectorDSPCUDAExt = "CUDA"
 
 [compat]
 Adapt = "1, 2, 3"
