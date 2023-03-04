@@ -8,7 +8,6 @@ ArgCheck = "dce04be8-c92d-5529-be00-80e4d2c0e197"
 ArraysOfArrays = "65a8f2f4-9b39-5baf-92e2-a9cc46fdf018"
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 CompositionsBase = "a33af91c-f02d-484b-be07-31d278c5ca2b"
-CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 ElasticArrays = "fdbdab4c-e67f-52f5-8c3f-e7b388dad3d4"
@@ -63,7 +62,5 @@ Unitful = "1"
 julia = "1.7"
 
 [extras]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[targets]
-test = ["Test"]
