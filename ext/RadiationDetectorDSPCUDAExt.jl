@@ -2,7 +2,7 @@
 
 module RadiationDetectorDSPCUDAExt
 
-using CUDA
+isdefined(Base, :get_extension) ? (using CUDA) : (using ..CUDA)
 using RadiationDetectorDSP
 
 
