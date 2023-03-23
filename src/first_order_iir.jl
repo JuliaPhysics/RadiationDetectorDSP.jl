@@ -29,7 +29,7 @@ Adapt.adapt_structure(to, flt::FirstOrderIIR) = flt
 
 
 function fltinstance(flt::FirstOrderIIR, si::SamplingInfo{T}) where T
-    FirstOrderIIRInstance{T}(flt.b_01, flt.a_1, _smpllen(si))
+    FirstOrderIIRInstance{_floattype(T)}(flt.b_01, flt.a_1, _smpllen(si))
 end
 
 
@@ -78,7 +78,8 @@ struct FirstOrderIIRInstance{T} <: AbstractRadSigFilterInstance{LinearFiltering}
     n::Int
 end
 
-@inline function rdfilt!(Y::AbstractVector{T}, fi::FirstOrderIIRInstance{T}, X::AbstractVector{T}) where {T<:Real}
+@inline function rdfilt!(Y::AbstractVector{T}, fi::FirstOrderIIRInstance{T}, 
+X::AbstractVector{U}) where {T<:Real, U<:Real}
     a1 = fi.a_1[1]
     neg_a1 = -a1
     b0, b1 = fi.b_01
