@@ -32,6 +32,7 @@ import DSP
 import SIMD
 
 
+include("computedevs.jl")
 include("samples.jl")
 include("math_utils.jl")
 include("array_utils.jl")
