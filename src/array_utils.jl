@@ -103,14 +103,14 @@ const _BC_RQ_AosAs = Union{ArrayOfSimilarArrays{<:RealQuantity}, Ref{<:AbstractA
 
 
 """
-    RadiationDetectorDSP.CPUAdaptor
+    RadiationDetectorDSP.CPUNormAdaptor
 
 To be used with `Adapt.adapt`.
 
-`Adapt.adapt(RadiationDetectorDSP.CPUAdaptor, x)` adapts `x` to reside on
+`Adapt.adapt(RadiationDetectorDSP.CPUNormAdaptor, x)` adapts `x` to reside on
 the CPU and tries to ensure that arrays are stored in column-major order.
 """
-struct CPUAdaptor end
+struct CPUNormAdaptor end
 
-Adapt.adapt_storage(::CPUAdaptor, A::AbstractArray) = adapt(Array, A)
-Adapt.adapt_structure(to::CPUAdaptor, A::LinearAlgebra.Transpose{<:Number}) = adapt(to, _nonlazy_transpose(transpose(A)))
+Adapt.adapt_storage(::CPUNormAdaptor, A::AbstractArray) = adapt(Array, A)
+Adapt.adapt_structure(to::CPUNormAdaptor, A::LinearAlgebra.Transpose{<:Number}) = adapt(to, _nonlazy_transpose(transpose(A)))
