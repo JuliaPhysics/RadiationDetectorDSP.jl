@@ -103,9 +103,9 @@ function bc_lsqfitat!(
     # ToDo: Try to avoid additional copy:
     A_slqfit = adapt(adaptor, _lsq_fit_matrix(0:(n - 1), degree))
 
-    dev = KernelAbstractions.get_device(flat_Ys)
-    kernel! = _lsqfitatpos_kernel!(dev, _ka_threads(dev)...)
-    evt = kernel!(Y_est, A_slqfit, X_axis, flat_Ys, adapted_X_pos, ndrange=_kbc_size(size(Y_est)))
-    wait(evt)
+    backend = _ka_get_backend(flat_Ys)
+    kernel! = _lsqfitatpos_kernel!(backend, _ka_threads(backend)...)
+    kernel_ret = kernel!(Y_est, A_slqfit, X_axis, flat_Ys, adapted_X_pos, ndrange=_kbc_size(size(Y_est)))
+    _ka_synchronize(kernel!, kernel_ret)
     return _kbc_result(Y_est)
 end

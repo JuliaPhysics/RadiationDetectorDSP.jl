@@ -32,6 +32,7 @@ import DSP
 import SIMD
 
 
+include("ka_compat.jl")
 include("computedevs.jl")
 include("samples.jl")
 include("math_utils.jl")
