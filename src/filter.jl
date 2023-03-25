@@ -269,11 +269,11 @@ end
 
 
 @kernel function _ka_filter_kernel!(
-    Y::AbstractArray{<:RealQuantity,N}, @Const(X::AbstractArray{<:RealQuantity,N}),
+    outputs::ArrayOfSimilarArrays{<:RealQuantity,M,N}, @Const(inputs::ArrayOfSimilarArrays{<:RealQuantity,M,N}),
     fi::AbstractRadSigFilterInstance
-) where N
+) where {N,M}
     idxs = @index(Global, NTuple)
-    rdfilt!(view(Y, :, idxs...), fi, view(X, :, idxs...))
+    rdfilt!(outputs[idxs...], fi, inputs[idxs...])
 end
 
 _ka_threads(::KernelAbstractions.CPU) = (Base.Threads.nthreads(),)
@@ -284,13 +284,14 @@ function _ka_bc_rdfilt!(
     fi::AbstractRadSigFilterInstance,
     inputs::ArrayOfSimilarVectors{<:RealQuantity}
 )
-    X = flatview(inputs)
-    Y = flatview(outputs)
-    @argcheck Base.tail(axes(X)) == Base.tail(axes(Y))
+    @argcheck axes(inputs) == axes(outputs)
 
-    dev = KernelAbstractions.get_device(Y)
+    adaptor = device_adaptor(deviceof(inputs))
+    adapted_fi = adapt(adaptor, fi)
+    
+    dev = KernelAbstractions.get_device(flatview(outputs))
     kernel! = _ka_filter_kernel!(dev, _ka_threads(dev)...)
-    evt = kernel!(Y, X, fi, ndrange=Base.tail(size(Y))) 
+    evt = kernel!(outputs, inputs, adapted_fi, ndrange=size(inputs)) 
     wait(evt)
     return outputs
 end
