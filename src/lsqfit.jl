@@ -69,7 +69,7 @@ function lsqfitatpos(degree::Integer, n::Integer, X::AbstractRange{<:RealQuantit
 end
 
 
-@kernel function _lsqfitatpos_kernel4!(
+@kernel function _lsqfitatpos_kernel!(
     Y_est::AbstractArray{<:Real},
     @Const(A_slqfit::AbstractMatrix{<:Real}),
     X_axis::AbstractRange{<:RealQuantity},
@@ -92,18 +92,20 @@ function bc_lsqfitat!(
     Ys::_BC_RQ_AosAs,
     X_pos::_BC_RQs
 )
+    adaptor = device_adaptor(deviceof(Y_est))
+    adapted_X_pos = adapt(adaptor, X_pos)
+
     flat_Ys, _ = _kbc_flatview(Ys)
     @argcheck isempty(Base.tail(axes(flat_Ys))) || axes(Y_est) == Base.tail(axes(flat_Ys))
     @argcheck axes(X_axis,1) == axes(flat_Ys)[1]
-    @argcheck isempty(axes(X_pos)) || axes(Y_est) == axes(X_pos)
+    @argcheck isempty(axes(adapted_X_pos)) || axes(Y_est) == axes(adapted_X_pos)
 
     # ToDo: Try to avoid additional copy:
-    A_slqfit_tmp = _lsq_fit_matrix(0:(n - 1), degree)
-    A_slqfit = _to_same_device_as(flat_Ys, A_slqfit_tmp)
+    A_slqfit = adapt(adaptor, _lsq_fit_matrix(0:(n - 1), degree))
 
     dev = KernelAbstractions.get_device(flat_Ys)
-    kernel! = _lsqfitatpos_kernel4!(dev, _ka_threads(dev)...)
-    evt = kernel!(Y_est, A_slqfit, X_axis, flat_Ys, X_pos, ndrange=_kbc_size(size(Y_est)))
+    kernel! = _lsqfitatpos_kernel!(dev, _ka_threads(dev)...)
+    evt = kernel!(Y_est, A_slqfit, X_axis, flat_Ys, adapted_X_pos, ndrange=_kbc_size(size(Y_est)))
     wait(evt)
     return _kbc_result(Y_est)
 end

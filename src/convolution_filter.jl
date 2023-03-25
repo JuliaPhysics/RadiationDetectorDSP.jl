@@ -135,6 +135,8 @@ struct FFTConvFilterInstance{T<:Real,TV<:AbstractVector{Complex{T}}} <: Abstract
     offset::Int
 end
 
+Adapt.adapt_structure(to, fi::FFTConvFilterInstance) = FFTConvFilterInstance(adapt(to, fi.rfft_h), fi.n_filter, fi.offset)
+
 _filterlen(fi::FFTConvFilterInstance) = fi.n_filter
 
 
@@ -161,10 +163,12 @@ function bc_rdfilt(
     inputs::ArrayOfSimilarArrays{<:Real,1,N}
 ) where N
     T_out = flt_output_smpltype(fi)
+    adaptor = device_adaptor(deviceof(inputs))
+    adapted_fi = adapt(adaptor, fi)
     X = flatview(inputs)
-    rfft_h = _to_same_device_as(X, fi.rfft_h) # ToDo: Try to avoid this, significant overhead on GPU
+    rfft_h = adapted_fi.rfft_h
     Y = irfft(rfft(X, 1) .* rfft_h, size(X, 1), 1)
-    valid_range = (first(axes(Y, 1)) + fi.n_filter - 1):last(axes(Y, 1))
+    valid_range = (first(axes(Y, 1)) + adapted_fi.n_filter - 1):last(axes(Y, 1))
     flat_output = Y[valid_range, :]
     ArrayOfSimilarArrays{T_out,1,N}(flat_output)
 end

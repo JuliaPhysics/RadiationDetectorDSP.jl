@@ -55,20 +55,6 @@ _col_major(A::AbstractMatrix{T}) where {T<:Number} = A
 _col_major(A::LinearAlgebra.Transpose{T}) where {T<:Number} = _nonlazy_transpose(_lazy_transpose(A))
 
 
-# ToDo: Replace _to_same_device_as workaround as soon as ArrayInferface
-# and Adapt have proper support for computing devices:
-
-_to_same_device_as(::T, Y::T) where T = Y
-_to_same_device_as(::Array, Y::Array) = Y
-_to_same_device_as(::Array, Y::SubArray{Float32,1,<:Array}) = Y
-
-function _to_same_device_as(X, Y)
-    new_Y = similar(X, eltype(Y), size(Y))
-    copy!(new_Y, Y)
-    return new_Y
-end
-
-
 Base.@propagate_inbounds _front_tuple(x::NTuple{N,Any}, ::Val{M}) where {N,M} =
     Base.ntuple(i -> x[i], Val{M}())
 

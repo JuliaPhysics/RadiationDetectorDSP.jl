@@ -270,7 +270,7 @@ end
 
 @kernel function _ka_filter_kernel!(
     outputs::ArrayOfSimilarArrays{<:RealQuantity,M,N}, @Const(inputs::ArrayOfSimilarArrays{<:RealQuantity,M,N}),
-    fi::AbstractRadSigFilterInstance
+    @Const(fi::AbstractRadSigFilterInstance)
 ) where {N,M}
     idxs = @index(Global, NTuple)
     rdfilt!(outputs[idxs...], fi, inputs[idxs...])
