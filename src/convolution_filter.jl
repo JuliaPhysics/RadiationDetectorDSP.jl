@@ -101,6 +101,8 @@ struct DirectConvFilterInstance{T<:Real,TV<:AbstractVector{T}} <: AbstractConvFi
     offset::Int
 end
 
+Adapt.adapt_structure(to, fi::DirectConvFilterInstance) = DirectConvFilterInstance(adapt(to, fi.reverse_h), fi.n_input, fi.offset)
+
 _filterlen(fi::DirectConvFilterInstance) = size(fi.reverse_h, 1)
 
 @inline function rdfilt!(y::AbstractVector{T}, fi::DirectConvFilterInstance{T}, x::AbstractVector{T}) where {T<:Real}
@@ -118,30 +120,12 @@ _filterlen(fi::DirectConvFilterInstance) = size(fi.reverse_h, 1)
     return y
 end
 
-
-@kernel function _direct_conv_kernel!(
-    Y::AbstractArray{<:RealQuantity,N}, @Const(X::AbstractArray{<:RealQuantity,N}),
-    @Const(reverse_h::AbstractArray{<:RealQuantity},N), n_input::Int, offset::Int
-) where N
-    idxs = @index(Global, NTuple)
-    fi = DirectConvFilterInstance(reverse_h, n_input, offset)
-    rdfilt!(view(Y, :, idxs...), fi, view(X, :, idxs...))
-end
-
 function bc_rdfilt!(
-    outputs::AbstractVector{<:AbstractSamples},
+    outputs::ArrayOfSimilarVectors{<:RealQuantity},
     fi::DirectConvFilterInstance,
-    inputs::AbstractVector{<:AbstractSamples}
+    inputs::ArrayOfSimilarVectors{<:RealQuantity}
 )
-    X = flatview(inputs)
-    Y = flatview(outputs)
-    @argcheck Base.tail(axes(X)) == Base.tail(axes(Y))
-
-    dev = KernelAbstractions.get_device(Y)
-    kernel! = _direct_conv_kernel!(dev, _ka_threads(dev)...)
-    evt = kernel!(Y, X, fi.reverse_h, fi.n_input, fi.offset, ndrange=Base.tail(size(Y))) 
-    wait(evt)
-    return outputs
+    _ka_bc_rdfilt!(outputs, fi, inputs)
 end
 
 
