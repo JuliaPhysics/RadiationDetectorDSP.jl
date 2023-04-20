@@ -16,6 +16,7 @@ include("test_utils.jl")
     @test @inferred(RadiationDetectorDSP.sg_filter_coeffs(-3:3, 3, 2)) ≈ @inferred(RadiationDetectorDSP.sg_filter_coeffs(-3:3, 3, 2, 1))
     @test @inferred(RadiationDetectorDSP.sg_filter_coeffs(-4:4, 3, 3)) ≈ @inferred(RadiationDetectorDSP.sg_filter_coeffs(-4:4, 3, 3, 1))
 
+    @test SavitzkyGolayFilter(2, 1, 1)(float.(cumsum(1:5))) ≈ [2.5, 3.5, 4.5]
 
     flt = SavitzkyGolayFilter(7, 3, 2)
     uflt = SavitzkyGolayFilter(10.3u"ns", 3, 2)

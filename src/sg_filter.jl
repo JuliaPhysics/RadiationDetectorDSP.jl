@@ -43,7 +43,7 @@ end
 function ConvolutionFilter(flt::SavitzkyGolayFilter)
     rmin = - div(Int(flt.length), 2)
     rmax = flt.length + rmin - 1
-    coeffs = RadiationDetectorDSP.sg_filter_coeffs(rmin:rmax, flt.degree, flt.derivative)
+    coeffs = reverse(RadiationDetectorDSP.sg_filter_coeffs(rmin:rmax, flt.degree, flt.derivative))
     ConvolutionFilter(DirectConvolution(), coeffs, rmin)
 end
 
