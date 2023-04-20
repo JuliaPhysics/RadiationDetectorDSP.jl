@@ -17,6 +17,7 @@ using ElasticArrays
 using FFTW
 using FillArrays
 using FunctionChains
+using GPUArraysCore
 using IntervalSets
 using KernelAbstractions
 using InverseFunctions
