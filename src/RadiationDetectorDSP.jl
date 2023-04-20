@@ -24,6 +24,7 @@ using InverseFunctions
 using Parameters
 using RadiationDetectorSignals
 using StatsBase
+using StructArrays
 using TypedTables
 using UnPack
 using Unitful
