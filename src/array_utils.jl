@@ -62,6 +62,8 @@ Base.@propagate_inbounds _front_tuple(x::NTuple{N,Any}, ::Val{M}) where {N,M} =
 
 @inline _kbc_getindex(A::AbstractArray{<:Any,N}, idxs...) where N =  getindex(A, _front_tuple(idxs, Val(N))...)
 @inline _kbc_getindex(x::Number, idxs...) =  x
+@inline _kbc_getindex(x::Tuple{<:Number}, idxs...) =  x[1]
+@inline _kbc_getindex(x::Ref{<:Number}, idxs...) =  x[]
 
 @inline _kbc_setindex!(A::AbstractArray{<:Any,N}, x, idxs...) where N =  setindex!(A, x, _front_tuple(idxs, Val(N))...)
 
