@@ -66,6 +66,7 @@ end
 function __init__()
     @static if !isdefined(Base, :get_extension)
         @require CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba" include("../ext/RadiationDetectorDSPCUDAExt.jl")
+        @require JLArrays = "27aeb0d3-9eb9-45fb-866b-73c2ecf80fcb" include("../ext/RadiationDetectorDSPJLArraysExt.jl")
     end
 end
 

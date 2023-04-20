@@ -33,9 +33,11 @@ Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [weakdeps]
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+JLArrays = "27aeb0d3-9eb9-45fb-866b-73c2ecf80fcb"
 
 [extensions]
 RadiationDetectorDSPCUDAExt = "CUDA"
+RadiationDetectorDSPJLArraysExt = "JLArrays"
 
 [compat]
 Adapt = "1, 2, 3"
@@ -53,6 +55,7 @@ FunctionChains = "0.1"
 GPUArraysCore = "0.1"
 IntervalSets = "0.7"
 InverseFunctions = "0.1"
+JLArrays = "0.1"
 KernelAbstractions = "0.8, 0.9"
 Parameters = "0.12"
 RadiationDetectorSignals = "0.3.3"
@@ -67,4 +70,5 @@ julia = "1.7"
 
 [extras]
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+JLArrays = "27aeb0d3-9eb9-45fb-866b-73c2ecf80fcb"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
