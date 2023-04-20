@@ -44,10 +44,6 @@ end
 _similar_memlayout(A::AbstractArray{<:T}, ::Type{U}, sz::Dims) where {T<:Real,U<:Real} = similar(A, U, sz)
 _similar_memlayout(A::LinearAlgebra.Transpose{<:T}, ::Type{U}, sz::Dims) where {T<:Real,U<:Real} = transpose(similar(A, U, reverse(sz)))
 
-
-_lazy_transpose(A::AbstractMatrix{T}) where {T<:Number} = transpose(A)
-_nonlazy_transpose(A::AbstractMatrix{T}) where {T<:Number} = copy(_lazy_transpose(A))
-
 _row_major(A::AbstractMatrix{T}) where {T<:Number} = _lazy_transpose(_nonlazy_transpose(A))
 _row_major(A::LinearAlgebra.Transpose{T}) where {T<:Number} = A
 
