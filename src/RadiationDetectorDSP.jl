@@ -35,6 +35,7 @@ import SIMD
 
 
 include("ka_compat.jl")
+include("fast_indexing.jl")
 include("computedevs.jl")
 include("samples.jl")
 include("math_utils.jl")
