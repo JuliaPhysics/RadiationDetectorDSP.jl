@@ -20,6 +20,9 @@ using Statistics
     step_signal = vcat(fill(0.0, 10), fill(1.0, 30))
     step_wf = RDWaveform(15u"ns"*(0:39), step_signal)
 
+    # Workaround for isapprox for ranges on Julia v1.6:
+    cmpwf(a::RDWaveform, b::RDWaveform; kwargs...) = isapprox(a.signal, b.signal, kwargs...) && isapprox(collect(a.time), collect(b.time), kwargs...)
+
     @testset "RCFilter" begin
         x = current_wf
         plot(x)
@@ -30,7 +33,7 @@ using Statistics
         hline!([1 - exp(-1)])
         @test inverse(flt) isa InvRCFilter
         @test inverse(inverse(flt)) == flt
-        InverseFunctions.test_inverse(flt, x)
+        InverseFunctions.test_inverse(flt, x; compare = cmpwf)
     end
 
     @testset "CRFilter" begin
@@ -43,7 +46,7 @@ using Statistics
         hline!([exp(-1)])
         @test inverse(flt) isa InvCRFilter
         @test inverse(inverse(flt)) == flt
-        InverseFunctions.test_inverse(flt, x)
+        InverseFunctions.test_inverse(flt, x; compare = cmpwf)
     end
 
     @testset "ModCRFilter" begin
@@ -56,7 +59,7 @@ using Statistics
         hline!([exp(-1)])
         @test inverse(flt) isa InvModCRFilter
         @test inverse(inverse(flt)) == flt
-        InverseFunctions.test_inverse(flt, x)
+        InverseFunctions.test_inverse(flt, x; compare = cmpwf)
     end
 
     @testset "IntegratorFilter" begin
@@ -68,7 +71,7 @@ using Statistics
         plot!(inverse(flt)(output))
         @test inverse(flt) isa DifferentiatorFilter
         @test inverse(inverse(flt)) == flt
-        InverseFunctions.test_inverse(flt, x)
+        InverseFunctions.test_inverse(flt, x; compare = cmpwf)
     end
 
     @testset "SimpleCSAFilter" begin
