@@ -61,7 +61,7 @@ end
     @uniform acc_initval = _deep_mul(f_presum(one(T_in)), zero(weight_one))
 
     onebased_j, = @index(Global, NTuple)
-    global_j = onebased_j-1 + first(axes(X,2)) - 1
+    global_j = onebased_j + first(axes(X,2)) - 1
     if global_j in axes(X,2)
         i_start_real = _kbc_getindex(I_start, global_j)
         weight_last = i_start_real - floor(i_start_real)
@@ -182,7 +182,6 @@ function run_wf_map_sum_kernel!(
     kernel! = wf_map_sum_kernel_impl(backend, (n_workers,))
     n_waveforms = length(axes(X, 2))
     n_tiles = div(n_waveforms + n_workers - 1, n_workers)
-    div(n + n_workers - 1, n_workers)
     kernel_ret = kernel!(f_presum, f_postsum, Y, X, I_start, n, ndrange=(n_tiles * n_workers,)) 
     _ka_synchronize(kernel!, kernel_ret)
     return Y
