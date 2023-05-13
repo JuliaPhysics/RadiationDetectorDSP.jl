@@ -83,6 +83,11 @@ const _BC_RQ_Arrays = Union{AbstractArray{<:AbstractArray{<:RealQuantity}}, Ref{
 const _BC_RQ_AosAs = Union{ArrayOfSimilarArrays{<:RealQuantity}, Ref{<:AbstractArray{<:RealQuantity}}, Tuple{<:AbstractArray{<:RealQuantity}}}
 
 
+_similar_maybe_structarray(A, ::Type{T}, sz::Dims) where {T<:Real} =  similar(A, T, sz)
+_similar_maybe_structarray(A, ::Type{T}, sz::Dims) where T =  similar(StructArray((A,)), T, sz)
+
+
+
 """
     RadiationDetectorDSP.CPUNormAdaptor
 

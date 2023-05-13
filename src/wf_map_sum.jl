@@ -144,3 +144,11 @@ function run_wf_map_sum_kernel!(
     _ka_synchronize(kernel!, kernel_ret)
     return Y
 end
+
+
+function _construct_wf_map_sum_output(f_presum, f_postsum, X::AbstractArray{<:Real})
+    # T_presum = Core.Compiler.return_type(f_presum, Tuple{eltype(X)})
+    # T_postsum = Core.Compiler.return_type(f_postsum, Tuple{T_presum})
+    T_postsum = typeof(f_postsum(f_presum(one(eltype(X)))))
+    _similar_maybe_structarray(X, T_postsum, (size(X, 2),))
+end
