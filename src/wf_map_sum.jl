@@ -15,7 +15,7 @@ _acc_weighted_add(acc::NamedTuple{names}, x::NamedTuple{names}, weight::Number) 
     f_postsum,
     Y::AbstractVector{<:Real},
     X::AbstractMatrix{<:Real},
-    I_start::AbstractVector{<:Integer},
+    I_start::Union{Integer,AbstractVector{<:Integer}},
     n::Integer,
     w_first::Number,
 )
@@ -50,7 +50,7 @@ _acc_weighted_add(acc::NamedTuple{names}, x::NamedTuple{names}, weight::Number) 
         #!!!@fastmath @inbounds @simd
         for local_j in Base.OneTo(tile_size)
             global_j = global_j_offset + local_j
-            i_start_offset = I_start[global_j] - first(axes(X,1))
+            i_start_offset = _kbc_getindex(I_start, global_j) - first(axes(X,1))
             global_i = global_i_base + i_start_offset
             if global_i in axes(X,1) && global_j in axes(X,2)
                 buf[local_j, local_i] = convert(T_in, X[global_i, global_j])
@@ -86,4 +86,47 @@ _acc_weighted_add(acc::NamedTuple{names}, x::NamedTuple{names}, weight::Number) 
 
     #!!!@inbounds
     Y[global_j] = f_postsum(acc[1])
+end
+
+
+function _div(a, b)
+    @info "div($a,  $b)"
+    div(a, b)
+end
+
+@kernel function transpose_kernel_impl(
+    Y::AbstractMatrix{T_out},
+    X::AbstractMatrix{T_in},
+    n_tiles::Tuple{<:Integer,<:Integer},
+) where {T_out<:Number,T_in<:Number}
+    tile_size = @uniform @groupsize()[1] # Must be static
+    @assert tile_size == @groupsize()[2]
+    tile_i, tile_j = @index(Group, NTuple)
+    local_i, local_j = @index(Local, NTuple)
+
+    @uniform n_tiles_i = n_tiles[1]
+    @uniform n_tiles_j = n_tiles[2]
+
+    buf = @localmem T_in (tile_size, tile_size)
+
+    global_i = (tile_i-1) * tile_size + first(axes(X,1)) - 1 + local_i
+    global_j = (tile_j-1) * tile_size + first(axes(X,2)) - 1 + local_j
+
+    # Sanity check:
+    #in_global_i, in_global_j = @index(Global, NTuple)
+    #@assert global_i == in_global_i
+    #@assert global_j == in_global_j
+
+    @inbounds if global_i in axes(X,1) && global_j in axes(X,2)
+        buf[local_j, local_i] = X[global_i, global_j]
+    end
+
+    @synchronize
+
+    global_i = (tile_j-1) * tile_size + first(axes(Y,1)) - 1 + local_i
+    global_j = (tile_i-1) * tile_size + first(axes(Y,2)) - 1 + local_j
+
+    @inbounds if global_i in axes(Y,1) && global_j in axes(Y,2)
+        Y[global_i, global_j] = buf[local_i, local_j]
+    end
 end
