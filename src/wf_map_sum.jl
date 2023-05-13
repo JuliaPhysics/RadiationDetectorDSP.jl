@@ -24,8 +24,8 @@ _acc_weighted_add(acc::NamedTuple{names}, x::NamedTuple{names}, weight::Number) 
     @uniform T_in = _floattype(eltype(X))
 
     n_workers = @uniform @groupsize()[1] # Must be static
-    worker_group = @index(Group, NTuple)[1]
-    worker = @index(Local, NTuple)[1]
+    worker_group, = @index(Group, NTuple)
+    worker, = @index(Local, NTuple)
 
     @uniform tile_size = n_workers
     @uniform n_tiles = div(n + n_workers - 1, n_workers)
@@ -35,11 +35,7 @@ _acc_weighted_add(acc::NamedTuple{names}, x::NamedTuple{names}, weight::Number) 
 
     buf = @localmem T_in (tile_size, tile_size)
 
-    # Sanity check:
-    global_j, = @index(Global, NTuple)
-    @assert global_j == (worker_group-1) * tile_size + first(axes(X,2)) - 1 + worker
-
-    acc = @private typeof(acc_initval) acc_initval
+    acc = @private typeof(acc_initval) 1
     #!!!@inbounds 
     acc[1] = acc_initval # necessary?
 
@@ -65,7 +61,7 @@ _acc_weighted_add(acc::NamedTuple{names}, x::NamedTuple{names}, weight::Number) 
 
         @synchronize
 
-        tmp_acc::eltype(acc_initval) = acc_initval
+        tmp_acc::typeof(acc_initval) = acc_initval
         tmp_acc = let i = 1
             f_x = f_presum(buf[worker, i])
             weight = ifelse(tile == 1, w_first, w_one)
@@ -84,6 +80,10 @@ _acc_weighted_add(acc::NamedTuple{names}, x::NamedTuple{names}, weight::Number) 
         acc[1] += tmp_acc
     end
 
+    # Sanity check:
+    global_j, = @index(Global, NTuple)
+    @assert global_j == (worker_group-1) * tile_size + first(axes(X,2)) - 1 + worker
+
     #!!!@inbounds
-    Y[global_i] = f_postsum(acc[1])
+    Y[global_j] = f_postsum(acc[1])
 end
