@@ -61,6 +61,28 @@ _col_major(A::LinearAlgebra.Transpose{T}) where {T<:Number} = _nonlazy_transpose
 @inline _kbc_setindex!(A::AbstractArray{<:Any,N}, x, idxs...) where N =  setindex!(A, x, _firstn_of(idxs, Val(N))...)
 
 
+
+const NumCollectionLike{T<:Number} = Union{T,AbstractArray{T},(NTuple{N,T} where N),Ref{T}}
+const FlattableNumCollection{T<:Number} = Union{NumCollectionLike{T},NumCollectionLike{<:T}}
+
+@inline _bc_flat_getindex(A::AbstractArray{<:Number,N}, idxs...) where N =  getindex(A, _front_tuple(idxs, Val(N))...)
+@inline _bc_flat_getindex(x::Number, idxs::Integer...) =  x
+@inline _bc_flat_getindex(x::Tuple{<:Number}, ::Integer, idxs::Integer...) =  x[1]
+@inline _bc_flat_getindex(x::Ref{<:Number}, idxs::Integer...) =  x[]
+@inline _bc_flat_getindex(x::NTuple{N,<:Number}, idxs::Integer...) where N =  x[_firstof(idxs)]
+
+@inline function _bc_flat_getindex(x::AbstractArray{<:NumCollectionLike,N}, idxs...) where N
+    idxs_inner, idxs_outer = _split_lastn_of(idxs, Val{N}())
+    _bc_flat_getindex(_bc_flat_getindex(x, idxs_outer...), idxs_inner...)
+end
+
+@inline function _bc_flat_getindex(x::Union{(NTuple{N,<:NumCollectionLike} where N),Ref{<:NumCollectionLike}}, idxs...)
+    idxs_inner, i_outer = _split_lastof(idxs)
+    _bc_flat_getindex(_bc_flat_getindex(x, i_outer), idxs_inner...)
+end
+
+
+
 struct _Reslice{M,N} end
 (f::_Reslice{M,N})(A::AbstractArray{T}) where {M,N,T<:RealQuantity} = ArrayOfSimilarArrays{T,M,N}(A)
 
