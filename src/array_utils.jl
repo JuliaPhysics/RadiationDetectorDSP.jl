@@ -62,8 +62,8 @@ _col_major(A::LinearAlgebra.Transpose{T}) where {T<:Number} = _nonlazy_transpose
 
 
 
-const NumCollectionLike{T<:Number} = Union{T,AbstractArray{T},(NTuple{N,T} where N),Ref{T}}
-const FlattableNumCollection{T<:Number} = Union{NumCollectionLike{T},NumCollectionLike{<:T}}
+const CollectionLike{T} = Union{AbstractArray{T},(NTuple{N,T} where N),Ref{T}}
+const FlattableCollection{T} = Union{CollectionLike{T},CollectionLike{<:CollectionLike{T}}}
 
 @inline _bc_flat_getindex(A::AbstractArray{<:Number,N}, idxs...) where N =  getindex(A, _front_tuple(idxs, Val(N))...)
 @inline _bc_flat_getindex(x::Number, idxs::Integer...) =  x
@@ -71,12 +71,12 @@ const FlattableNumCollection{T<:Number} = Union{NumCollectionLike{T},NumCollecti
 @inline _bc_flat_getindex(x::Ref{<:Number}, idxs::Integer...) =  x[]
 @inline _bc_flat_getindex(x::NTuple{N,<:Number}, idxs::Integer...) where N =  x[_firstof(idxs)]
 
-@inline function _bc_flat_getindex(x::AbstractArray{<:NumCollectionLike,N}, idxs...) where N
+@inline function _bc_flat_getindex(x::AbstractArray{<:CollectionLike{<:Number},N}, idxs...) where N
     idxs_inner, idxs_outer = _split_lastn_of(idxs, Val{N}())
     _bc_flat_getindex(_bc_flat_getindex(x, idxs_outer...), idxs_inner...)
 end
 
-@inline function _bc_flat_getindex(x::Union{(NTuple{N,<:NumCollectionLike} where N),Ref{<:NumCollectionLike}}, idxs...)
+@inline function _bc_flat_getindex(x::Union{(NTuple{N,<:CollectionLike{<:Number}} where N),Ref{<:CollectionLike{<:Number}}}, idxs...)
     idxs_inner, i_outer = _split_lastof(idxs)
     _bc_flat_getindex(_bc_flat_getindex(x, i_outer), idxs_inner...)
 end
