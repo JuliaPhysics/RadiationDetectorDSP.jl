@@ -21,21 +21,19 @@ _acc_weighted_add(acc::NamedTuple{names}, x::NamedTuple{names}, weight::Number) 
 )
     # i indexes samples, j indexes waveforms
 
-    T_in = _floattype(eltype(X))
+    @uniform T_in = _floattype(eltype(X))
 
     n_workers = @uniform @groupsize()[1] # Must be static
     worker_group = @index(Group, NTuple)[1]
     worker = @index(Local, NTuple)[1]
 
-    @unform tile_size = n_workers
+    @uniform tile_size = n_workers
     @uniform n_tiles = div(n + n_workers - 1, n_workers)
     @uniform w_one = one(typeof(w_first))
     @uniform w_last = w_one - w_first
     @uniform acc_initval = f_presum(-zero(T_in)) * w_one
 
-
     buf = @localmem T_in (tile_size, tile_size)
-
 
     # Sanity check:
     global_j, = @index(Global, NTuple)
@@ -52,10 +50,12 @@ _acc_weighted_add(acc::NamedTuple{names}, x::NamedTuple{names}, weight::Number) 
         global_i_offset = (tile-1) * tile_size + first(axes(X,1)) - 1
         global_j_offset = (worker_group-1) * tile_size + first(axes(X,2)) - 1
         local_i = worker
-        global_i = global_i_offset + local_i
+        global_i_base = global_i_offset + local_i
         #!!!@fastmath @inbounds @simd
         for local_j in Base.OneTo(tile_size)
             global_j = global_j_offset + local_j
+            i_start_offset = I_start[global_j] - first(axes(X,1))
+            global_i = global_i_base + i_start_offset
             if global_i in axes(X,1) && global_j in axes(X,2)
                 buf[local_j, local_i] = convert(T_in, X[global_i, global_j])
             else
@@ -84,6 +84,6 @@ _acc_weighted_add(acc::NamedTuple{names}, x::NamedTuple{names}, weight::Number) 
         acc[1] += tmp_acc
     end
 
-    @inbounds
+    #!!!@inbounds
     Y[global_i] = f_postsum(acc[1])
 end
