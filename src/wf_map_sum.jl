@@ -15,7 +15,7 @@ _deep_mul(x::NamedTuple{names}, weight::Number) where names = NamedTuple{names}(
 
 
 @inline function _wf_map_sum_single(
-    f_presum, acc, x::AbstractRange{<:RealQuantity}, Y_buf::AbstractMatrix{<:Real}
+    f_presum, acc, x::AbstractRange{<:RealQuantity}, Y_buf::AbstractMatrix{<:Real},
     weight_last::Real, is_first_tile::Bool, is_last_tile::Bool,
     n_i::Integer, local_j::Integer,
 )
