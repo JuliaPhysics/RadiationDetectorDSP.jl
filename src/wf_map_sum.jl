@@ -43,8 +43,7 @@ _deep_mul(x::NamedTuple{names}, weight::Number) where names = NamedTuple{names}(
     buf = @localmem T_in (tile_size, tile_size)
 
     acc = @private typeof(acc_initval) 1
-    #!!!@inbounds 
-    acc[1] = acc_initval # necessary?
+    @inbounds acc[1] = acc_initval # necessary?
 
     for tile in 1:n_tiles
         let
@@ -56,13 +55,11 @@ _deep_mul(x::NamedTuple{names}, weight::Number) where names = NamedTuple{names}(
             local_i = worker
             global_i_base = global_i_offset + local_i
 
-            #!!!@fastmath @inbounds @simd
-            for local_j in Base.OneTo(tile_size)
+            @fastmath @inbounds @simd for local_j in Base.OneTo(tile_size)
                 buf[local_j, local_i] = nan_value
             end
 
-            #!!!@fastmath @inbounds @simd
-            for local_j in Base.OneTo(tile_size)
+            @fastmath @inbounds @simd for local_j in Base.OneTo(tile_size)
                 global_j = global_j_offset + local_j
                 if global_j in axes(X,2)
                     i_start_real = _kbc_getindex(I_start, global_j)
@@ -103,8 +100,7 @@ _deep_mul(x::NamedTuple{names}, weight::Number) where names = NamedTuple{names}(
                         _acc_weighted_add(tmp_acc, f_x, weight)
                     end
                 end
-                #!!!@fastmath @inbounds @simd
-                for local_i in 2:(n_i - 1)
+                @fastmath @inbounds @simd for local_i in 2:(n_i - 1)
                     #@debug "wf_map_sum_kernel_impl summing: $((;local_j, local_i))"
                     f_x = f_presum(buf[local_j, local_i])
                     tmp_acc = _acc_add(tmp_acc, f_x)
@@ -125,8 +121,7 @@ _deep_mul(x::NamedTuple{names}, weight::Number) where names = NamedTuple{names}(
     @assert global_j == (worker_group-1) * tile_size + first(axes(X,2)) - 1 + worker
 
     if global_j in axes(X,2)
-    #!!!@inbounds
-    Y[global_j] = f_postsum(acc[1])
+        @inbounds Y[global_j] = f_postsum(acc[1])
     end
 end
 
