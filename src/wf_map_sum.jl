@@ -15,7 +15,7 @@ _deep_mul(x::NamedTuple{names}, weight::Number) where names = NamedTuple{names}(
 
 
 @inline function _wf_map_sum_single(
-    f_presum, acc, x::AbstractRange{<:RealQuantity}, Y_buf::AbstractMatrix{<:Real},
+    f_presum, acc, x_range::AbstractRange{<:RealQuantity}, Y_buf::AbstractMatrix{<:Real},
     weight_last::Real, is_first_tile::Bool, is_last_tile::Bool,
     n_i::Integer, local_j::Integer,
 )
@@ -49,7 +49,7 @@ end
     f_presum,
     f_postsum,
     Z::AbstractVector,
-    X::Union{AbstractRange{<:RealQuantity},AbstractVector{<:AbstractRange{<:RealQuantity}}},
+    X::Union{AbstractRange{<:RealQuantity},AbstractVector{<:CollectionLike{<:RealQuantity}}},
     Y::AbstractArray{<:Real,2},
     I_start::Union{Real,AbstractVector{<:Real}},
     n::Integer
@@ -67,10 +67,11 @@ end
         i_start_real = _kbc_getindex(I_start, global_j)
         weight_last = i_start_real - floor(i_start_real)
         i_start = floor(Int, i_start_real)
+        idxs = i_start:i_start+n_eff-1
     
-        Y_buf = transpose(view(Y, i_start:i_start+n_eff-1, global_j))
+        Y_buf = transpose(view(Y, idxs, global_j))
         tmp_sum = _wf_map_sum_single(
-            f_presum, acc_initval, Y_buf,
+            f_presum, acc_initval, x_range, Y_buf,
             weight_last, true, true, n_eff, 1
         )
         @inbounds Z[global_j] = f_postsum(tmp_sum)
@@ -151,9 +152,10 @@ end
             if global_j in axes(Y,2)
                 i_start_real = _kbc_getindex(I_start, global_j)
                 weight_last = i_start_real - floor(i_start_real)
+                i_start = floor(Int, i_start_real)
                 #@debug "wf_map_sum_kernel_impl: $((;tile, tile_size))"
                 tmp_sum = _wf_map_sum_single(
-                    f_presum, acc_initval, Y_buf,
+                    f_presum, acc_initval, x_range, Y_buf,
                     weight_last, tile == 1, tile == n_tiles, n_i, local_j
                 )
                 acc[1] = _acc_add(acc[1], tmp_sum)
