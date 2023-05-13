@@ -87,6 +87,8 @@ _similar_maybe_structarray(A, ::Type{T}, sz::Dims) where {T<:Real} =  similar(A,
 _similar_maybe_structarray(A, ::Type{T}, sz::Dims) where T =  similar(StructArray((A,)), T, sz)
 
 
+const GPULikeArray{T,N} = Union{AbstractGPUArray{T,N},SubArray{T,N,<:AbstractGPUArray{T,N}}}
+
 
 """
     RadiationDetectorDSP.CPUNormAdaptor

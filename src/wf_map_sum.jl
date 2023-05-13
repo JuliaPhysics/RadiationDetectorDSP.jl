@@ -14,12 +14,13 @@ _deep_mul(x::NTuple{N}, weight::Number) where N = ntuple(i -> _deep_mul(x[i], we
 _deep_mul(x::NamedTuple{names}, weight::Number) where names = NamedTuple{names}(_deep_mul(values(x), weight))
 
 
-
 @inline function _wf_map_sum_single(
+    f_presum,
     acc,
     buf::AbstractMatrix{<:Real},
     I_start::Union{Real,AbstractVector{<:Real}},
-    n_i::Integer, global_j::Integer, local_j::Integer
+    is_first_tile::Bool, is_last_tile::Bool, n_i::Integer,
+    global_j::Integer, local_j::Integer,
 )
     weight_one = one(_floattype(eltype(buf)))
 
@@ -35,7 +36,7 @@ _deep_mul(x::NamedTuple{names}, weight::Number) where names = NamedTuple{names}(
         tmp_acc = let local_i = 1
             #@debug "wf_map_sum_kernel_impl summing: $((;local_j, local_i))"
             f_x = f_presum(buf[local_j, local_i])
-            weight = ifelse(tile == 1, weight_first, weight_one)
+            weight = ifelse(is_first_tile, weight_first, weight_one)
             _acc_weighted_add(tmp_acc, f_x, weight)
         end
     end
@@ -47,7 +48,7 @@ _deep_mul(x::NamedTuple{names}, weight::Number) where names = NamedTuple{names}(
     tmp_acc = let local_i = n_i
         #@debug "wf_map_sum_kernel_impl summing: $((;local_j, local_i))"
         f_x = f_presum(buf[local_j, local_i])
-        weight = ifelse(tile == n_tiles, weight_last, weight_one)
+        weight = ifelse(is_last_tile, weight_last, weight_one)
         _acc_weighted_add(tmp_acc, f_x, weight)
     end
     return tmp_acc
@@ -58,10 +59,9 @@ end
     f_presum,
     f_postsum,
     Y::AbstractVector,
-    X::AbstractMatrix{<:Real},
+    X::AbstractArray{<:Real,2},
     I_start::Union{Real,AbstractVector{<:Real}},
-    n::Integer,
-    ::Type{<:KernelAbstractions.CPU}
+    n::Integer
 )
     @uniform T_in = _floattype(eltype(X))
     @uniform n_eff = n + 1
@@ -73,8 +73,11 @@ end
     onebased_j, = @index(Global, NTuple)
     global_j = onebased_j-1 + first(axes(X,2)) - 1
     if global_j in axes(X,2)
-        acc_sum = _acc_add(acc[1], _wf_map_sum_single(acc_initval, X, acc, buf, I_start, n_eff, global_j, global_j))
-        @inbounds Y[global_j] = f_postsum(acc_sum)
+        tmp_sum = _wf_map_sum_single(
+            f_presum, acc_initval, transpose(X), I_start,
+            true, true, n_eff, global_j, global_j
+        )
+        @inbounds Y[global_j] = f_postsum(tmp_sum)
     end
 end
 
@@ -83,10 +86,9 @@ end
     f_presum,
     f_postsum,
     Y::AbstractVector,
-    X::AbstractMatrix{<:Real},
+    X::GPULikeArray{<:Real, 2},
     I_start::Union{Real,AbstractVector{<:Real}},
-    n::Integer,
-    ::Type{<:KernelAbstractions.Backend}
+    n::Integer
 )
     # i indexes samples, j indexes waveforms
 
@@ -151,7 +153,11 @@ end
             n_i = min(n_eff - (tile-1) * tile_size, tile_size)
             if global_j in axes(X,2)
                 #@debug "wf_map_sum_kernel_impl: $((;tile, tile_size))"
-                acc[1] = _acc_add(acc[1], _wf_map_sum_single(acc_initval, buf, acc, buf, I_start, n_i, global_j, local_j))
+                tmp_sum = _wf_map_sum_single(
+                    f_presum, acc_initval, buf, I_start,
+                    tile == 1, tile == n_tiles, n_i, global_j, local_j
+                )
+                acc[1] = _acc_add(acc[1], tmp_sum)
             end
         end
     end
@@ -177,7 +183,6 @@ function run_wf_map_sum_kernel!(
     backend = _ka_get_backend(X)
     n_workers = 32
     kernel! = wf_map_sum_kernel_impl(backend, (n_workers,))
-    @info typeof(backend).super
     n_waveforms = length(axes(X, 2))
     n_tiles = div(n_waveforms + n_workers - 1, n_workers)
     div(n + n_workers - 1, n_workers)
