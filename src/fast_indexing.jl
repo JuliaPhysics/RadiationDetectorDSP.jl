@@ -66,25 +66,36 @@ Base.@propagate_inbounds _lastn_of(x::NamedTuple{names}, ::Val{N}) where {names,
 Base.@propagate_inbounds _lastn_of(x::Ref, ::Val{N}) where N = _lastn_of((x[],), Val{N}())
 
 
-Base.@propagate_inbounds _split_firstn_of(x, n::Integer) = (_firstn_of(x, n), _lastn_of(x, length(eachindex(x)) - n))
-Base.@propagate_inbounds _split_firstn_of(x::NTuple{M,Any}, n::Integer) where M = (_firstn_of(x, n), _lastn_of(x, M - n))
-Base.@propagate_inbounds _split_firstn_of(x::NamedTuple{names,<:NTuple{M,<:Any}}, n::Integer) where {names,M} = (_firstn_of(x, n), _lastn_of(x, M - n))
+Base.@propagate_inbounds _split_firstof(x) = _firstof(x), _lastn_of(x, length(eachindex(x)) - 1)
+Base.@propagate_inbounds _split_firstof(x::NTuple{M,<:Any}) where M = _firstof(x), _lastn_of(x, Val{M - 1}())
+Base.@propagate_inbounds _split_firstof(x::NamedTuple{names,<:NTuple{M,<:Any}}) where {names,M} = _firstof(x), _lastn_of(x, Val{M - 1}())
+Base.@propagate_inbounds _split_firstof(x::Ref) = _split_firstof((x[],))
+
+Base.@propagate_inbounds _split_lastof(x) = _firstn_of(x, length(eachindex(x)) - 1), _lastof(x)
+Base.@propagate_inbounds _split_lastof(x::NTuple{M,<:Any}) where M = _firstn_of(x, Val{M - 1}()), _lastof(x)
+Base.@propagate_inbounds _split_lastof(x::NamedTuple{names,<:NTuple{M,<:Any}}) where {names,M} = _firstn_of(x, Val{M - 1}()), _lastof(x)
+Base.@propagate_inbounds _split_lastof(x::Ref) = _split_lastof((x[],))
+
+
+Base.@propagate_inbounds _split_firstn_of(x, n::Integer) = _firstn_of(x, n), _lastn_of(x, length(eachindex(x)) - n)
+Base.@propagate_inbounds _split_firstn_of(x::NTuple{M,<:Any}, n::Integer) where M = firstn_of(x, n), _lastn_of(x, M - n)
+Base.@propagate_inbounds _split_firstn_of(x::NamedTuple{names,<:NTuple{M,<:Any}}, n::Integer) where {names,M} = _firstn_of(x, n), _lastn_of(x, M - n)
 Base.@propagate_inbounds _split_firstn_of(x::Ref, n::Integer) = _split_firstn_of((x[],), n)
 
-Base.@propagate_inbounds _split_firstn_of(x, ::Val{N}) where N = (_firstn_of(x, Val{N}()), _lastn_of(x, length(eachindex(x)) - N))
-Base.@propagate_inbounds _split_firstn_of(x::NTuple{M,Any}, ::Val{N}) where {M,N} = (_firstn_of(x, Val{N}()), _lastn_of(x, Val{M - N}()))
-Base.@propagate_inbounds _split_firstn_of(x::NamedTuple{names,<:NTuple{M,<:Any}}, ::Val{N}) where {names,M,N} = (_firstn_of(x, Val{N}()), _lastn_of(x, Val{M - N}()))
+Base.@propagate_inbounds _split_firstn_of(x, ::Val{N}) where N = _firstn_of(x, Val{N}()), _lastn_of(x, length(eachindex(x)) - N)
+Base.@propagate_inbounds _split_firstn_of(x::NTuple{M,<:Any}, ::Val{N}) where {M,N} = _firstn_of(x, Val{N}()), _lastn_of(x, Val{M - N}())
+Base.@propagate_inbounds _split_firstn_of(x::NamedTuple{names,<:NTuple{M,<:Any}}, ::Val{N}) where {names,M,N} = _firstn_of(x, Val{N}()), _lastn_of(x, Val{M - N}())
 Base.@propagate_inbounds _split_firstn_of(x::Ref, ::Val{N}) where N = _split_firstn_of((x[],), Val{N}())
 
 
-Base.@propagate_inbounds _split_lastn_of(x, n::Integer) = (_firstn_of(x, length(eachindex(x)) - n), _lastn_of(x, n))
-Base.@propagate_inbounds _split_lastn_of(x::NTuple{M,Any}, n::Integer) where M = (_firstn_of(x, M - n), _lastn_of(x, n))
-Base.@propagate_inbounds _split_lastn_of(x::NamedTuple{names,<:NTuple{M,<:Any}}, n::Integer) where {names,M} = (_firstn_of(x, M - n), _lastn_of(x, n))
+Base.@propagate_inbounds _split_lastn_of(x, n::Integer) = _firstn_of(x, length(eachindex(x)) - n), _lastn_of(x, n)
+Base.@propagate_inbounds _split_lastn_of(x::NTuple{M,<:Any}, n::Integer) where M = _firstn_of(x, M - n), _lastn_of(x, n)
+Base.@propagate_inbounds _split_lastn_of(x::NamedTuple{names,<:NTuple{M,<:Any}}, n::Integer) where {names,M} = _firstn_of(x, M - n), _lastn_of(x, n)
 Base.@propagate_inbounds _split_lastn_of(x::Ref, n::Integer) = _split_lastn_of((x[],), n)
 
-Base.@propagate_inbounds _split_lastn_of(x, ::Val{N}) where N = (_firstn_of(x, length(eachindex(x)) - N), _lastn_of(x, Val{N}()))
-Base.@propagate_inbounds _split_lastn_of(x::NTuple{M,Any}, ::Val{N}) where {M,N} = (_firstn_of(x, Val{M - N}()), _lastn_of(x, Val{N}()))
-Base.@propagate_inbounds _split_lastn_of(x::NamedTuple{names,<:NTuple{M,<:Any}}, ::Val{N}) where {names,M,N} = (_firstn_of(x, Val{M - N}()), _lastn_of(x, Val{N}()))
+Base.@propagate_inbounds _split_lastn_of(x, ::Val{N}) where N = _firstn_of(x, length(eachindex(x)) - N), _lastn_of(x, Val{N}())
+Base.@propagate_inbounds _split_lastn_of(x::NTuple{M,<:Any}, ::Val{N}) where {M,N} = _firstn_of(x, Val{M - N}()), _lastn_of(x, Val{N}())
+Base.@propagate_inbounds _split_lastn_of(x::NamedTuple{names,<:NTuple{M,<:Any}}, ::Val{N}) where {names,M,N} = _firstn_of(x, Val{M - N}()), _lastn_of(x, Val{N}())
 Base.@propagate_inbounds _split_lastn_of(x::Ref, ::Val{N}) where N = _split_lastn_of((x[],), Val{N}())
 
 
