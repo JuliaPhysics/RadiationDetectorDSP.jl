@@ -15,28 +15,18 @@ _deep_mul(x::NamedTuple{names}, weight::Number) where names = NamedTuple{names}(
 
 
 @inline function _wf_map_sum_single(
-    f_presum,
-    acc,
-    buf::AbstractMatrix{<:Real},
-    I_start::Union{Real,AbstractVector{<:Real}},
-    is_first_tile::Bool, is_last_tile::Bool, n_i::Integer,
-    global_j::Integer, local_j::Integer,
+    f_presum, acc, buf::AbstractMatrix{<:Real},
+    weight_last::Real, is_first_tile::Bool, is_last_tile::Bool,
+    n_i::Integer, local_j::Integer,
 )
-    weight_one = one(_floattype(eltype(buf)))
-
+    weight_first = one(weight_last) - weight_last
+    
     tmp_acc::typeof(acc) = acc
-
-    i_start_real = _kbc_getindex(I_start, global_j)
-    i_start = floor(Int, i_start_real)
-    weight_last = i_start_real - i_start
-    weight_first = weight_one - weight_last
-
-    #@debug "wf_map_sum_kernel_impl: $((;n_eff, n_i, i_start, weight_last))"
     if n_i > 1
         tmp_acc = let local_i = 1
             #@debug "wf_map_sum_kernel_impl summing: $((;local_j, local_i))"
             f_x = f_presum(buf[local_j, local_i])
-            weight = ifelse(is_first_tile, weight_first, weight_one)
+            weight = ifelse(is_first_tile, weight_first, one(weight_first))
             _acc_weighted_add(tmp_acc, f_x, weight)
         end
     end
@@ -48,7 +38,7 @@ _deep_mul(x::NamedTuple{names}, weight::Number) where names = NamedTuple{names}(
     tmp_acc = let local_i = n_i
         #@debug "wf_map_sum_kernel_impl summing: $((;local_j, local_i))"
         f_x = f_presum(buf[local_j, local_i])
-        weight = ifelse(is_last_tile, weight_last, weight_one)
+        weight = ifelse(is_last_tile, weight_last, one(weight_last))
         _acc_weighted_add(tmp_acc, f_x, weight)
     end
     return tmp_acc
@@ -73,9 +63,14 @@ end
     onebased_j, = @index(Global, NTuple)
     global_j = onebased_j-1 + first(axes(X,2)) - 1
     if global_j in axes(X,2)
+        i_start_real = _kbc_getindex(I_start, global_j)
+        weight_last = i_start_real - floor(i_start_real)
+        i_start = floor(Int, i_start_real)
+    
+        buf = transpose(view(X, i_start:i_start+n_eff-1, global_j))
         tmp_sum = _wf_map_sum_single(
-            f_presum, acc_initval, transpose(X), I_start,
-            true, true, n_eff, global_j, global_j
+            f_presum, acc_initval, buf,
+            weight_last, true, true, n_eff, 1
         )
         @inbounds Y[global_j] = f_postsum(tmp_sum)
     end
@@ -152,10 +147,12 @@ end
             global_j = global_j_offset + local_j
             n_i = min(n_eff - (tile-1) * tile_size, tile_size)
             if global_j in axes(X,2)
+                i_start_real = _kbc_getindex(I_start, global_j)
+                weight_last = i_start_real - floor(i_start_real)
                 #@debug "wf_map_sum_kernel_impl: $((;tile, tile_size))"
                 tmp_sum = _wf_map_sum_single(
-                    f_presum, acc_initval, buf, I_start,
-                    tile == 1, tile == n_tiles, n_i, global_j, local_j
+                    f_presum, acc_initval, buf,
+                    weight_last, tile == 1, tile == n_tiles, n_i, local_j
                 )
                 acc[1] = _acc_add(acc[1], tmp_sum)
             end
