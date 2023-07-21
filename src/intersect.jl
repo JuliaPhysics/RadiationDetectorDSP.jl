@@ -64,7 +64,9 @@ function _find_intersect_impl(X::AbstractVector{<:RealQuantity}, Y::AbstractVect
     y_r = Y[intersect_pos]
     intersect_cand_x = R(threshold - y_l) * R(x_r - x_l) / R(y_r - y_l) + R(x_l)
     @assert  y_l <= threshold <= y_r || n_intersects == 0
-    intersect_x = ifelse(n_intersects > 0, intersect_cand_x, R(NaN))
+    # TODO: return NaN if no intersect found but make sure it is compatible with the other routines
+    intersect_x  = ifelse(n_intersects > 0, intersect_cand_x, zero(intersect_cand_x))
+    n_intersects = ifelse(n_intersects > 0, n_intersects, 0)
 
     return (
         x =intersect_x,
