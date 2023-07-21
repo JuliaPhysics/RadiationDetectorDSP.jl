@@ -89,6 +89,6 @@ end
 
 function bc_reverse_waveform(inputs::ArrayOfSimilarVectors{<:RealQuantity})
     X = flatview(inputs)
-    Y = reverse(X)
+    Y = reverse(X, dims = 1)
     ArrayOfSimilarVectors(Y)
 end
