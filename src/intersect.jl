@@ -29,13 +29,19 @@ end
 
 
 function _find_intersect_impl(X::AbstractVector{<:RealQuantity}, Y::AbstractVector{<:RealQuantity}, threshold::RealQuantity, min_n_over_thresh::Int)
-    # GPU-friendly branch-free implementation
-
     @assert axes(X) == axes(Y)
 
-    R = float(promote_type(typeof(threshold), eltype(Y)))
+    # ToDo: What if eltype(Y) is based on ForwardDiff.Dual, but eltype(X) is not?
+    R = float(eltype(X))
 
-    isempty(Y) && return R(NaN) # No intersect found
+    if isempty(Y)
+        return (
+            x = R(NaN),
+            multiplicity = -1
+        )
+    end
+
+    # GPU-friendly branch-free code:
 
     cand_pos::Int = firstindex(Y) + 1
     intersect_pos::Int = firstindex(Y) + 1
@@ -69,7 +75,7 @@ function _find_intersect_impl(X::AbstractVector{<:RealQuantity}, Y::AbstractVect
     n_intersects = ifelse(n_intersects > 0, n_intersects, 0)
 
     return (
-        x =intersect_x,
+        x = intersect_x,
         multiplicity = n_intersects
     )
 end
