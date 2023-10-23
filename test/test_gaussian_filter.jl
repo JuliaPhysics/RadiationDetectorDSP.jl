@@ -11,14 +11,12 @@ using Adapt
 using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
 
-@testset "ZACChargeFilter" begin
+@testset "Gauss1DFilter" begin
     step_signal = RCFilter(10)(vcat(fill(0.0, 300), fill(1.0, 300)))
     step_wf = RDWaveform(15u"ns"*(eachindex(step_signal)), step_signal)
 
-    flt = ZACChargeFilter(
+    flt = Gauss1DFilter(
         sigma = 15u"ns"*10, 
-        toplen = 15u"ns"*20, 
-        tau=450u"ns", 
         length = 15u"ns"*100)
 
     @test flt(step_wf) isa RDWaveform

@@ -14,6 +14,8 @@ Test.@testset "Package RadiationDetectorDSP" begin
     include("test_trapezoidal_filter.jl")
     include("test_sg_filter.jl")
     include("test_zac_filter.jl")
+    include("test_cusp_filter.jl")
+    include("test_gaussian_filter.jl")
 
     # doctests
     Documenter.DocMeta.setdocmeta!(

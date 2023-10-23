@@ -18,19 +18,19 @@ Fields:
 $(TYPEDFIELDS)
 """
 @with_kw struct Gauss1DFilter{
-    T <: RealQuantity
+    T <: RealQuantity, U <: RealQuantity, V <: Real
 } <: AbstractRadFIRFilter
     "standard deviation"
     sigma::T = 1.
+    
+    "total length of the filter"
+    length::U = 100.
 
     "the amount of standard deviations to cover in the gaussian window"
-    alpha::T = 1.
+    alpha::V = 1.
 
     "scaling factor"
-    beta::T = 1.
-
-    "total length of the filter"
-    length::T = 100.
+    beta::V = 100.
 end
 
 export Gauss1DFilter
@@ -38,7 +38,12 @@ export Gauss1DFilter
 Adapt.adapt_structure(to, flt::Gauss1DFilter) = flt
 
 function fltinstance(flt::Gauss1DFilter, fi::SamplingInfo)
-    fltinstance(ConvolutionFilter(Gauss1DFilter()), fi)
+    fltinstance(ConvolutionFilter(Gauss1DFilter(
+        ustrip(NoUnits, flt.sigma / step(fi.axis)),
+        round(Int, ustrip(flt.sigma / step(fi.axis))),
+        flt.alpha,
+        flt.beta
+    )), fi)
 end
 
 function ConvolutionFilter(flt::Gauss1DFilter)
@@ -48,16 +53,19 @@ function ConvolutionFilter(flt::Gauss1DFilter)
 end
 
 """
-    gaussian_coeffs(N::Int, alpha::T, sigma::T, beta::T) where {T}
+    gaussian_coeffs(N::Int, sigma::V, alpha::U, beta::U) where {V, U}
 
 compute a gaussian kernel, where `N` is the total length of the kernel, 
 `alpha` the amount of standard deviations to cover, `sigma` the standard 
 deviation and `beta` the total scaling factor.
 """
-function gaussian_coeffs(N::Int, alpha::T, sigma::T, beta::T) where {T}
-    y = Vector{Float64}(undef, N)
-    xᵢ = -sigma*alpha
-    Δx = abs(2*xᵢ)/(N-1)
+function gaussian_coeffs(N::Int, sigma::V, alpha::U, beta::U
+    ) where {V, U <: AbstractFloat}
+
+    T = promote_type(V, U)
+    y = Vector{T}(undef, N)
+    xᵢ::T = -sigma*alpha
+    Δx::T = abs(2*xᵢ)/(N-1)
     for i=Base.OneTo(N)
         y[i] = beta*exp(-0.5*(xᵢ/alpha)^2) / N
         xᵢ += Δx

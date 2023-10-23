@@ -18,22 +18,22 @@ Fields:
 $(TYPEDFIELDS)
 """
 @with_kw struct ZACChargeFilter{
-    T <: RealQuantity, U <: Real
+    T <: RealQuantity, U <: RealQuantity, V <: RealQuantity, W <: Real
 } <: AbstractRadFIRFilter
     "equivalent of shaping time (τₛ)"
-    sigma::T = 450
+    sigma::U = 450
 
     "length of flat top (FT)"
     toplen::T = 10
 
     "decay constant of the exponential"
-    tau::T = 20
-
-    "scaling factor"
-    beta::U = 1.0
+    tau::V = 20
 
     "total length of the filter (L)"
     length::T = 100
+
+    "scaling factor"
+    beta::W = 100.
 end
 
 export ZACChargeFilter
@@ -42,9 +42,9 @@ Adapt.adapt_structure(to, flt::ZACChargeFilter) = flt
 
 function fltinstance(flt::ZACChargeFilter, fi::SamplingInfo)
     fltinstance(ConvolutionFilter(ZACChargeFilter(
-        round(Int, ustrip(NoUnits, flt.sigma / step(fi.axis))),
+        ustrip(NoUnits, flt.sigma / step(fi.axis)),
         round(Int, ustrip(NoUnits, flt.toplen / step(fi.axis))),
-        round(Int, ustrip(NoUnits, flt.tau / step(fi.axis))),
+        ustrip(NoUnits, flt.tau / step(fi.axis)),
         round(Int, ustrip(NoUnits, flt.length / step(fi.axis))),
         flt.beta
     )), fi)
@@ -57,7 +57,9 @@ function ConvolutionFilter(flt::ZACChargeFilter)
 end
 
 """
-    zac_charge_filter_coeffs(N::Int, sigma::Int, FT::Int, tau::Int)
+    zac_charge_filter_coeffs(
+        N::Int, sigma::V, FT::Int, tau::T, beta::U
+        ) where {V, T, U <: AbstractFloat}
 
 return a vector representing the zac filter applicaible on a charge 
 signal, where `N` is the total length of the filter, `FT` the length of 
@@ -65,16 +67,19 @@ the flat top, `sigma` the filter shaping time, `tau` the decay constant
 and beta an additional scaling factor.
 (see Eur. Phys. J. C (2015) 75:255).
 """
-function zac_charge_filter_coeffs(N::Int, sigma::Int, FT::Int, tau::Int, beta)
+function zac_charge_filter_coeffs(N::Int, sigma::U, FT::Int, tau::V, beta::W
+    ) where {U, V, W <: AbstractFloat}
+
+    T = promote_type(U, V, W)
     L::Int = ((N - FT) % 2 == 0) ? (N - FT)÷2 : (N - (FT+=1))÷2
-    FF = Vector{Float64}(undef, N-1)
+    FF = Vector{T}(undef, N-1)
     
-    α::Float64 = -exp(-1.0/tau)
-    C::Float64 = sinh(L/sigma)
-    β::Float64 = beta/N             # scaling factor
-    Δ::Float64 = (α + 1)*β
+    α::T = -exp(-1.0/tau)
+    C::T = sinh(L/sigma)
+    β::T = beta/N             # scaling factor
+    Δ::T = (α + 1)*β
     # sum of cusp filter
-    A::Float64 = FT + 
+    A::T = FT + 
         1.0/((C / (1 - exp(L / sigma))) - (C / (1 - exp((L-1) /sigma))))
     # sum of polynomial part
     A /= (L^3 - L)/3
