@@ -18,19 +18,19 @@ Fields:
 $(TYPEDFIELDS)
 """
 @with_kw struct Gauss1DFilter{
-    T <: RealQuantity, U <: RealQuantity, V <: Real
+    T <: RealQuantity, U <: AbstractFloat
 } <: AbstractRadFIRFilter
     "standard deviation"
     sigma::T = 1.
     
     "total length of the filter"
-    length::U = 100.
+    length::T = 100.
 
     "the amount of standard deviations to cover in the gaussian window"
-    alpha::V = 1.
+    alpha::U = 1.
 
     "scaling factor"
-    beta::V = 100.
+    beta::U = 100.
 end
 
 export Gauss1DFilter
@@ -39,8 +39,8 @@ Adapt.adapt_structure(to, flt::Gauss1DFilter) = flt
 
 function fltinstance(flt::Gauss1DFilter, fi::SamplingInfo)
     fltinstance(ConvolutionFilter(Gauss1DFilter(
-        ustrip(NoUnits, flt.sigma / step(fi.axis)),
-        round(Int, ustrip(flt.sigma / step(fi.axis))),
+        round(Int, ustrip(NoUnits, flt.sigma / step(fi.axis))),
+        round(Int, ustrip(NoUnits, flt.length / step(fi.axis))),
         flt.alpha,
         flt.beta
     )), fi)

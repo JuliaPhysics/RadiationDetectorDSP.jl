@@ -17,22 +17,22 @@ Fields:
 $(TYPEDFIELDS)
 """
 @with_kw struct CUSPChargeFilter{
-    T <: RealQuantity, U <: RealQuantity, V <: RealQuantity, W <: Real
+    T <: RealQuantity, U <: AbstractFloat
 } <: AbstractRadFIRFilter
     "equivalent of shaping time (τₛ)"
-    sigma::U = 450
+    sigma::T = 450
 
     "length of flat top (FT)"
     toplen::T = 10
 
     "decay constant of the exponential"
-    tau::V = 20
+    tau::T = 20
 
     "total length of the filter (L)"
     length::T = 100
 
     "scaling factor"
-    beta::W = 100.
+    beta::U = 100.
 end
 
 export CUSPChargeFilter
@@ -41,9 +41,9 @@ Adapt.adapt_structure(to, flt::CUSPChargeFilter) = flt
 
 function fltinstance(flt::CUSPChargeFilter, fi::SamplingInfo)
     fltinstance(ConvolutionFilter(CUSPChargeFilter(
-        ustrip(NoUnits, flt.sigma / step(fi.axis)),
+        round(Int, ustrip(NoUnits, flt.sigma / step(fi.axis))),
         round(Int, ustrip(NoUnits, flt.toplen / step(fi.axis))),
-        ustrip(NoUnits, flt.tau / step(fi.axis)),
+        round(Int, ustrip(NoUnits, flt.tau / step(fi.axis))),
         round(Int, ustrip(NoUnits, flt.length / step(fi.axis))),
         flt.beta
     )), fi)
