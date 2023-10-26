@@ -426,3 +426,44 @@ function BiquadFilter(flt::SimpleCSAFilter)
     flt2 = IntegratorCRFilter(cr = tau_decay, gain = gain)
     FirstOrderIIR(flt1) ∘ FirstOrderIIR(flt2)
 end
+
+
+"""
+    struct InvCRFilterSO <: AbstractRadIIRFilter
+
+Apply a double pole-zero cancellation using the provided time constants to the waveform.
+
+
+Constructors:
+
+* ```$(FUNCTIONNAME)(fields...)```
+
+Fields:
+
+$(TYPEDFIELDS)
+"""
+Base.@kwdef struct InvCRFilterSO{T<:RealQuantity, U<:RealQuantity, V<:Real} <: AbstractRadIIRFilter
+    "time constant of the first exponential to be deconvolved"
+    cr::T
+    "time constant of the second exponential to be deconvolved"
+    cr2::U
+    "the fraction faktor which the second exponential contributes"
+    f::V
+end
+
+export InvCRFilterSO
+
+function fltinstance(flt::InvCRFilterSO, fi::SamplingInfo)
+    fltinstance(BiquadFilter(InvCRFilterSO(ustrip(NoUnits, flt.cr / step(fi.axis)), ustrip(NoUnits, flt.cr2 / step(fi.axis)), flt.f )), fi)
+end
+
+function BiquadFilter(flt::InvCRFilterSO)
+    a = exp(-1/float(flt.cr))
+    b = exp(-1/float(flt.cr2))
+    frac = float(flt.f)
+    transfer_denom_1 = frac * b - frac * a - b - 1
+    transfer_denom_2 = -(frac * b - frac * a - b)
+    transfer_num_1 = -(a + b)
+    transfer_num_2 = a * b
+    BiquadFilter((1.0, transfer_num_1, transfer_num_2), (transfer_denom_1, transfer_denom_2))
+end
