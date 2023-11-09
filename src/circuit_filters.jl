@@ -428,9 +428,54 @@ function BiquadFilter(flt::SimpleCSAFilter)
 end
 
 
+
+"""
+    struct CRFilterSO <: AbstractRadIIRFilter
+
+A scond order CR highpass filter. The filter has an inverse [`InvCRFilterSO`](@ref).
+
+Constructors:
+
+* ```$(FUNCTIONNAME)(fields...)```
+
+Fields:
+
+$(TYPEDFIELDS)
+"""
+Base.@kwdef struct CRFilterSO{T<:RealQuantity, U<:RealQuantity, V<:Real} <: AbstractRadIIRFilter
+    "time constant of the first exponential to be deconvolved"
+    cr::T
+    "time constant of the second exponential to be deconvolved"
+    cr2::U
+    "the fraction faktor which the second exponential contributes"
+    f::V
+end
+
+export CRFilterSO
+
+function fltinstance(flt::CRFilterSO, fi::SamplingInfo)
+    fltinstance(BiquadFilter(CRFilterSO(ustrip(NoUnits, flt.cr / step(fi.axis)), ustrip(NoUnits, flt.cr2 / step(fi.axis)), flt.f )), fi)
+end
+
+InverseFunctions.inverse(flt::CRFilterSO) = InvCRFilterSO(flt.cr, flt.cr2, flt.f)
+
+function BiquadFilter(flt::CRFilterSO)
+    a = exp(-1/float(flt.cr))
+    b = exp(-1/float(flt.cr2))
+    frac = float(flt.f)
+    transfer_denom_1 = frac * b - frac * a - b - 1
+    transfer_denom_2 = -(frac * b - frac * a - b)
+    transfer_num_1 = -(a + b)
+    transfer_num_2 = a * b
+    BiquadFilter((1.0, transfer_denom_1, transfer_denom_2), (transfer_num_1, transfer_num_2))
+end
+
+
+
 """
     struct InvCRFilterSO <: AbstractRadIIRFilter
 
+Inverse of [`CRFilterSO`](@ref).
 Apply a double pole-zero cancellation using the provided time constants to the waveform.
 
 
@@ -456,6 +501,8 @@ export InvCRFilterSO
 function fltinstance(flt::InvCRFilterSO, fi::SamplingInfo)
     fltinstance(BiquadFilter(InvCRFilterSO(ustrip(NoUnits, flt.cr / step(fi.axis)), ustrip(NoUnits, flt.cr2 / step(fi.axis)), flt.f )), fi)
 end
+
+InverseFunctions.inverse(flt::InvCRFilterSO) = CRFilterSO(flt.cr, flt.cr2, flt.f)
 
 function BiquadFilter(flt::InvCRFilterSO)
     a = exp(-1/float(flt.cr))
