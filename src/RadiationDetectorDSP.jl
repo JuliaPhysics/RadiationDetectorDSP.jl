@@ -58,6 +58,8 @@ include("circuit_filters.jl")
 include("trapezoidal_filter.jl")
 include("sg_filter.jl")
 include("zac_filter.jl")
+include("cusp_filter.jl")
+include("gaussian_filter.jl")
 
 
 @static if !isdefined(Base, :get_extension)
