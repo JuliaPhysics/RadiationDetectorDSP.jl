@@ -430,9 +430,9 @@ end
 
 
 """
-    struct CRFilterSO <: AbstractRadIIRFilter
+    struct SecondOrderCRFilter <: AbstractRadIIRFilter
 
-A scond order CR highpass filter. The filter has an inverse [`InvCRFilterSO`](@ref).
+A scond order CR highpass filter. The filter has an inverse [`SecondOrderInvCRFilter`](@ref).
 
 Constructors:
 
@@ -442,7 +442,7 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-Base.@kwdef struct CRFilterSO{T<:RealQuantity, U<:RealQuantity, V<:Real} <: AbstractRadIIRFilter
+Base.@kwdef struct SecondOrderCRFilter{T<:RealQuantity, U<:RealQuantity, V<:Real} <: AbstractRadIIRFilter
     "time constant of the first exponential to be deconvolved"
     cr::T
     "time constant of the second exponential to be deconvolved"
@@ -451,15 +451,15 @@ Base.@kwdef struct CRFilterSO{T<:RealQuantity, U<:RealQuantity, V<:Real} <: Abst
     f::V
 end
 
-export CRFilterSO
+export SecondOrderCRFilter
 
-function fltinstance(flt::CRFilterSO, fi::SamplingInfo)
-    fltinstance(BiquadFilter(CRFilterSO(ustrip(NoUnits, flt.cr / step(fi.axis)), ustrip(NoUnits, flt.cr2 / step(fi.axis)), flt.f )), fi)
+function fltinstance(flt::SecondOrderCRFilter, fi::SamplingInfo)
+    fltinstance(BiquadFilter(SecondOrderCRFilter(ustrip(NoUnits, flt.cr / step(fi.axis)), ustrip(NoUnits, flt.cr2 / step(fi.axis)), flt.f )), fi)
 end
 
-InverseFunctions.inverse(flt::CRFilterSO) = InvCRFilterSO(flt.cr, flt.cr2, flt.f)
+InverseFunctions.inverse(flt::SecondOrderCRFilter) = SecondOrderInvCRFilter(flt.cr, flt.cr2, flt.f)
 
-function BiquadFilter(flt::CRFilterSO)
+function BiquadFilter(flt::SecondOrderCRFilter)
     a = exp(-1/float(flt.cr))
     b = exp(-1/float(flt.cr2))
     frac = float(flt.f)
@@ -473,9 +473,9 @@ end
 
 
 """
-    struct InvCRFilterSO <: AbstractRadIIRFilter
+    struct SecondOrderInvCRFilter <: AbstractRadIIRFilter
 
-Inverse of [`CRFilterSO`](@ref).
+Inverse of [`SecondOrderCRFilter`](@ref).
 Apply a double pole-zero cancellation using the provided time constants to the waveform.
 
 
@@ -487,7 +487,7 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-Base.@kwdef struct InvCRFilterSO{T<:RealQuantity, U<:RealQuantity, V<:Real} <: AbstractRadIIRFilter
+Base.@kwdef struct SecondOrderInvCRFilter{T<:RealQuantity, U<:RealQuantity, V<:Real} <: AbstractRadIIRFilter
     "time constant of the first exponential to be deconvolved"
     cr::T
     "time constant of the second exponential to be deconvolved"
@@ -496,15 +496,15 @@ Base.@kwdef struct InvCRFilterSO{T<:RealQuantity, U<:RealQuantity, V<:Real} <: A
     f::V
 end
 
-export InvCRFilterSO
+export SecondOrderInvCRFilter
 
-function fltinstance(flt::InvCRFilterSO, fi::SamplingInfo)
-    fltinstance(BiquadFilter(InvCRFilterSO(ustrip(NoUnits, flt.cr / step(fi.axis)), ustrip(NoUnits, flt.cr2 / step(fi.axis)), flt.f )), fi)
+function fltinstance(flt::SecondOrderInvCRFilter, fi::SamplingInfo)
+    fltinstance(BiquadFilter(SecondOrderInvCRFilter(ustrip(NoUnits, flt.cr / step(fi.axis)), ustrip(NoUnits, flt.cr2 / step(fi.axis)), flt.f )), fi)
 end
 
-InverseFunctions.inverse(flt::InvCRFilterSO) = CRFilterSO(flt.cr, flt.cr2, flt.f)
+InverseFunctions.inverse(flt::SecondOrderInvCRFilter) = SecondOrderCRFilter(flt.cr, flt.cr2, flt.f)
 
-function BiquadFilter(flt::InvCRFilterSO)
+function BiquadFilter(flt::SecondOrderInvCRFilter)
     a = exp(-1/float(flt.cr))
     b = exp(-1/float(flt.cr2))
     frac = float(flt.f)
