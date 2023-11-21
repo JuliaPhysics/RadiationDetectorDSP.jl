@@ -95,7 +95,7 @@ using Statistics
         plot!(output)
         plot!(inverse(flt)(output))
         hline!([exp(-1)])
-        @test inverse(flt) isa SecondOrderInvCRFilter
+        @test inverse(flt) isa InvSecondOrderCRFilter
         @test inverse(inverse(flt)) == flt
         InverseFunctions.test_inverse(flt, x; compare = cmpwf)
     end
