@@ -86,4 +86,17 @@ using Statistics
         # Tail of reco should be flat:
         @test var(tail) < 1e-5
     end
+
+    @testset "SecondOrderCRFilter" begin
+        x = current_wf
+        plot(x)
+        flt = SecondOrderCRFilter(cr = 15u"ns" * 10, cr2 = 0.5u"ns" * 10, f = 0.5)
+        output = flt(x)
+        plot!(output)
+        plot!(inverse(flt)(output))
+        hline!([exp(-1)])
+        @test inverse(flt) isa InvSecondOrderCRFilter
+        @test inverse(inverse(flt)) == flt
+        InverseFunctions.test_inverse(flt, x; compare = cmpwf)
+    end
 end
