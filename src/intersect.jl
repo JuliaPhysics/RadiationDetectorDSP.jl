@@ -45,7 +45,7 @@ function _find_intersect_impl(X::AbstractVector{<:RealQuantity}, Y::AbstractVect
 
     cand_pos::Int = firstindex(Y) + 1
     intersect_pos::Int = firstindex(Y) + 1
-    y_high_counter::Int = ifelse(first(Y) > threshold, min_n_over_thresh + 1, 0)
+    y_high_counter::Int = ifelse(first(Y) >= threshold, min_n_over_thresh + 1, 0)
 
     n_intersects::Int = 0
     @inbounds for i in eachindex(Y)
