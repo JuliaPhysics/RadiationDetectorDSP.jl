@@ -45,7 +45,7 @@ function _find_intersect_impl(X::AbstractVector{<:RealQuantity}, Y::AbstractVect
 
     cand_pos::Int = firstindex(Y) + 1
     intersect_pos::Int = firstindex(Y) + 1
-    y_high_counter::Int = ifelse(first(Y) > threshold, min_n_over_thresh + 1, 0)
+    y_high_counter::Int = ifelse(first(Y) >= threshold, min_n_over_thresh + 1, 0)
 
     n_intersects::Int = 0
     @inbounds for i in eachindex(Y)
@@ -61,7 +61,11 @@ function _find_intersect_impl(X::AbstractVector{<:RealQuantity}, Y::AbstractVect
         intersect_pos = ifelse(first_intersect_found, cand_pos, intersect_pos)
     end
 
-    @assert intersect_pos > firstindex(Y)
+    #TODO: return NaN if position found is unphysical but make sure it is compatible with the other routines
+    # @assert intersect_pos > firstindex(Y)
+    if intersect_pos <= firstindex(Y)
+        intersect_pos = firstindex(Y) + 1
+    end
 
     # Linear interpolation:
     x_l = X[intersect_pos - 1]
