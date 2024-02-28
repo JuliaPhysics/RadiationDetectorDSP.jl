@@ -62,10 +62,7 @@ function _find_intersect_impl(X::AbstractVector{<:RealQuantity}, Y::AbstractVect
     end
 
     #TODO: return NaN if position found is unphysical but make sure it is compatible with the other routines
-    # @assert intersect_pos > firstindex(Y)
-    if intersect_pos <= firstindex(Y)
-        intersect_pos = firstindex(Y) + 1
-    end
+    @assert intersect_pos > firstindex(Y)
 
     # Linear interpolation:
     x_l = X[intersect_pos - 1]
