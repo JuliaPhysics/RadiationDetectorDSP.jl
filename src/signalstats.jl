@@ -50,7 +50,7 @@ function _signalstats_impl(X::AbstractArray{<:RealQuantity}, Y::AbstractArray{<:
     mean_X = sum_X * inv_n
     mean_Y = sum_Y * inv_n
     var_X = sum_X_sqr * inv_n - mean_X * mean_X
-    var_Y = sum_Y_sqr * inv_n - mean_Y * mean_Y
+    var_Y = max(sum_Y_sqr * inv_n - mean_Y * mean_Y, zero(mean_Y))
     cov_XY = sum_XY * inv_n - mean_X * mean_Y
 
     # mean_X_uncert = sqrt( (sum_X_sqr - sum_X * mean_X) / (n - 1) )
@@ -62,12 +62,6 @@ function _signalstats_impl(X::AbstractArray{<:RealQuantity}, Y::AbstractArray{<:
     offset = mean_Y - slope * mean_X
     # slope_uncert = sqrt( (var_X*var_Y - cov_XY*cov_XY) / (n - 2) ) / var_X
     # offset_uncert = slope_uncert * sqrt(sum_X_sqr * inv_n)
-
-    # ToDo: Try to avoid if and catch that case maybe earlier
-    # avoid numerical instabilities if all Y's are equal
-    if var_Y < zero(var_Y)
-        var_Y = zero(var_Y)
-    end
 
     (
         mean = mean_Y,
