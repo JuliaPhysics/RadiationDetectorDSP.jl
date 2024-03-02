@@ -64,8 +64,8 @@ function _signalstats_impl(X::AbstractArray{<:RealQuantity}, Y::AbstractArray{<:
     # offset_uncert = slope_uncert * sqrt(sum_X_sqr * inv_n)
 
     # avoid numerical instabilities if all Y's are equal
-    var_Y = if var_Y < 0 && mean_Y == Y[1]
-        zero(var_Y)
+    if var_Y < zero(var_Y)
+        var_Y = zero(var_Y)
     end
 
     (
