@@ -47,11 +47,12 @@ function _signalstats_impl(X::AbstractArray{<:RealQuantity}, Y::AbstractArray{<:
     n = length(idxs)
     inv_n = inv(n)
 
-    mean_X = sum_X * inv_n
+    # mean_X = sum_X * inv_n
     mean_Y = sum_Y * inv_n
-    var_X = sum_X_sqr * inv_n - mean_X * mean_X
-    var_Y = sum_Y_sqr * inv_n - mean_Y * mean_Y
-    cov_XY = sum_XY * inv_n - mean_X * mean_Y
+    # var_X = sum_X_sqr * inv_n - mean_X * mean_X
+    # Ensure var_Y is not negative:
+    var_Y = max(sum_Y_sqr * inv_n - mean_Y * mean_Y, zero(mean_Y))
+    # cov_XY = sum_XY * inv_n - mean_X * mean_Y
 
     # mean_X_uncert = sqrt( (sum_X_sqr - sum_X * mean_X) / (n - 1) )
     # mean_Y_uncert = sqrt( (sum_Y_sqr - sum_Y * mean_Y) / (n - 1) )
