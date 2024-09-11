@@ -33,6 +33,8 @@ import ChainRulesCore
 import DSP
 import SIMD
 
+using Unitful: RealOrRealQuantity as RealQuantity
+
 
 include("ka_compat.jl")
 include("fast_indexing.jl")
