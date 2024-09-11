@@ -1,22 +1,5 @@
 # This file is a part of RadiationDetectorDSP.jl, licensed under the MIT License (MIT).
 
-
-"""
-    const MaybeWithUnits{T<:Number} = Union{T,Quantity{<:T}}
-
-A numerical value with or without units
-"""
-const MaybeWithUnits{T<:Number} = Union{T,Quantity{<:T}}
-
-
-"""
-    const RealQuantity = MaybeWithUnits{<:Real}
-
-A real value with or without units.
-"""
-const RealQuantity = MaybeWithUnits{<:Real}
-
-
 """
     const AbstractSamples{T<:RealQuantity} = AbstractVector{T}
 
