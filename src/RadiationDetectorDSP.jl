@@ -17,7 +17,6 @@ using ElasticArrays
 using FFTW
 using FillArrays
 using FunctionChains
-using GPUArraysCore
 using IntervalSets
 using KernelAbstractions
 using InverseFunctions
@@ -31,6 +30,7 @@ using Unitful
 
 import ChainRulesCore
 import DSP
+import GPUArraysCore
 import SIMD
 
 using Unitful: RealOrRealQuantity as RealQuantity
