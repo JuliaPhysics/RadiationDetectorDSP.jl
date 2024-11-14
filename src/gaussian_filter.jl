@@ -27,10 +27,10 @@ $(TYPEDFIELDS)
     length::T = 100.
 
     "the amount of standard deviations to cover in the gaussian window"
-    alpha::U = 1.
+    alpha::U = 3.
 
     "scaling factor"
-    beta::U = 100.
+    beta::U = 1.
 end
 
 export Gauss1DFilter
@@ -67,8 +67,10 @@ function gaussian_coeffs(N::Int, sigma::V, alpha::U, beta::U
     xᵢ::T = -sigma*alpha
     Δx::T = abs(2*xᵢ)/(N-1)
     for i=Base.OneTo(N)
-        y[i] = beta*exp(-0.5*(xᵢ/alpha)^2) / N
+        y[i] = beta*exp(-0.5*(xᵢ/sigma)^2)
         xᵢ += Δx
     end
-    y
+    sum_arr=sum(y)
+    y_norm= y./sum_arr
+    y_norm
 end
