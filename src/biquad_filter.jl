@@ -81,6 +81,10 @@ end
         s1 = fma(neg_a1, y_i, z2)
         s2 = fma(neg_a2, y_i, z3)
     end
+
+    # fix start value
+    Y[1] = Y[2]
+    
     Y
 end
 

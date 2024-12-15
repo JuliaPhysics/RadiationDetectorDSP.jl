@@ -99,6 +99,10 @@ X::AbstractVector{U}) where {T<:Real, U<:Real}
 
         s1 = fma(neg_a1, y_i, z2)
     end
+
+    # fix start value
+    Y[1] = Y[2]
+
     Y
 end
 
