@@ -83,7 +83,8 @@ end
     end
 
     # fix start value
-    Y[1] = Y[2]
+    Y[1] = Y[3]
+    Y[2] = Y[3]
     
     Y
 end
