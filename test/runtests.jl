@@ -5,6 +5,7 @@ import RadiationDetectorDSP
 import Documenter
 
 Test.@testset "Package RadiationDetectorDSP" begin
+    include("test_array_utils.jl")
     include("legacy/test_filters.jl")
     include("test_global_ops.jl")
     include("test_truncate_filter.jl")
