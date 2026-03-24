@@ -72,6 +72,6 @@ function _signalstats_impl(X::AbstractArray{<:RealQuantity}, Y::AbstractArray{<:
         sigma = sqrt(var_Y),
         slope = slope,
         offset = offset,
-        sigma_2 = sigma_slope,
+        slope_residual_sigma = sigma_slope,
     )
 end
