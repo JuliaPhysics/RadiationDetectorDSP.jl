@@ -33,14 +33,13 @@ import DSP
 import GPUArraysCore
 import SIMD
 
-using HeterogeneousComputing: HeterogeneousComputing
+using HeterogeneousComputing: AbstractComputeUnit, get_compute_unit
 
 using Unitful: RealOrRealQuantity as RealQuantity
 
 
 include("ka_compat.jl")
 include("fast_indexing.jl")
-include("computedevs.jl")
 include("samples.jl")
 include("math_utils.jl")
 include("transpose.jl")
@@ -65,16 +64,5 @@ include("zac_filter.jl")
 include("cusp_filter.jl")
 include("gaussian_filter.jl")
 
-
-@static if !isdefined(Base, :get_extension)
-    using Requires
-end
-
-function __init__()
-    @static if !isdefined(Base, :get_extension)
-        @require CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba" include("../ext/RadiationDetectorDSPCUDAExt.jl")
-        @require JLArrays = "27aeb0d3-9eb9-45fb-866b-73c2ecf80fcb" include("../ext/RadiationDetectorDSPJLArraysExt.jl")
-    end
-end
 
 end # module

@@ -286,7 +286,7 @@ function _ka_bc_rdfilt!(
 )
     @argcheck axes(inputs) == axes(outputs)
 
-    adaptor = device_adaptor(deviceof(inputs))
+    adaptor = get_compute_unit(inputs)
     adapted_fi = adapt(adaptor, fi)
     
     backend = _ka_get_backend(flatview(outputs))

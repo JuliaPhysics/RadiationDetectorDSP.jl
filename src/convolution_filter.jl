@@ -163,7 +163,7 @@ function bc_rdfilt(
     inputs::ArrayOfSimilarArrays{<:Real,1,N}
 ) where N
     T_out = flt_output_smpltype(fi)
-    adaptor = device_adaptor(deviceof(inputs))
+    adaptor = get_compute_unit(inputs)
     adapted_fi = adapt(adaptor, fi)
     X = flatview(inputs)
     rfft_h = adapted_fi.rfft_h

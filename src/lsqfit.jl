@@ -92,7 +92,7 @@ function bc_lsqfitat!(
     Ys::_BC_RQ_AosAs,
     X_pos::_BC_RQs
 )
-    adaptor = device_adaptor(deviceof(Y_est))
+    adaptor = get_compute_unit(Y_est)
     adapted_X_pos = adapt(adaptor, X_pos)
 
     flat_Ys, _ = _kbc_flatview(Ys)

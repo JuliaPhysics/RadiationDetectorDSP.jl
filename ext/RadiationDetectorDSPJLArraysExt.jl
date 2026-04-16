@@ -2,7 +2,7 @@
 
 module RadiationDetectorDSPJLArraysExt
 
-isdefined(Base, :get_extension) ? (using JLArrays) : (using ..JLArrays)
+using JLArrays
 
 import RadiationDetectorDSP
 import KernelAbstractions
