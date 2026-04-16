@@ -33,6 +33,8 @@ import DSP
 import GPUArraysCore
 import SIMD
 
+using HeterogeneousComputing: HeterogeneousComputing
+
 using Unitful: RealOrRealQuantity as RealQuantity
 
 
