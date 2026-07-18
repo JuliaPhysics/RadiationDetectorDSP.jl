@@ -18,7 +18,7 @@ Base.@kwdef struct SavitzkyGolayFilter{T<:RealQuantity} <: AbstractRadFIRFilter
     "filter length"
     length::T
 
-    "Polynomial defgree"
+    "Polynomial degree"
     degree::Int
 
     "n-th derivative (0 for no derivative)"

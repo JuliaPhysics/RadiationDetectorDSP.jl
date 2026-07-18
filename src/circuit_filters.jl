@@ -2,7 +2,7 @@
 
 
 """
-    struct RCFilter <: AbstractRadII>RFilter
+    struct RCFilter <: AbstractRadIIRFilter
 
 A first-order RC lowpass filter.
 
@@ -155,10 +155,11 @@ end
 A first-order CR highpass filter, modified for full-amplitude step-signal
 response.
 
-The resonse of the standard digital [`CRFilter`](@ref) will not recover the
-full amplitude of a digital step stignal since a step from one sample to the
-still has a finite rise time. This version of a CR filter compensates for
-this loss in amplitude, so it effectively treats a step as having
+The response of the standard digital [`CRFilter`](@ref) will not recover the
+full amplitude of a digital step signal since a step from one sample to the
+next still has a finite rise time. This version of a CR filter compensates
+for this loss in amplitude, so it effectively treats a step as
+instantaneous.
 
 The inverse filter is [`InvModCRFilter`](@ref), this is typically stable even in
 the presence of additional noise (see [`CRFilter`](@ref)).
@@ -230,7 +231,7 @@ end
 """
     struct IntegratorFilter <: AbstractRadIIRFilter
 
-An integrator filter. It's inverse is [`DifferentiatorFilter`](@ref).
+An integrator filter. Its inverse is [`DifferentiatorFilter`](@ref).
 
 Constructors:
 
@@ -262,7 +263,7 @@ end
 """
     struct DifferentiatorFilter <: AbstractRadIIRFilter
 
-An integrator filter. It's inverse is [`IntegratorFilter`](@ref).
+A differentiator filter. Its inverse is [`IntegratorFilter`](@ref).
 
 Constructors:
 
@@ -432,7 +433,7 @@ end
 """
     struct SecondOrderCRFilter <: AbstractRadIIRFilter
 
-A scond order CR highpass filter. The filter has an inverse [`InvSecondOrderCRFilter`](@ref).
+A second order CR highpass filter. The filter has an inverse [`InvSecondOrderCRFilter`](@ref).
 
 Constructors:
 
@@ -447,7 +448,7 @@ Base.@kwdef struct SecondOrderCRFilter{T<:RealQuantity, U<:RealQuantity, V<:Real
     cr::T
     "time constant of the second exponential to be deconvolved"
     cr2::U
-    "the fraction faktor which the second exponential contributes"
+    "the fraction factor which the second exponential contributes"
     f::V
 end
 
@@ -492,7 +493,7 @@ Base.@kwdef struct InvSecondOrderCRFilter{T<:RealQuantity, U<:RealQuantity, V<:R
     cr::T
     "time constant of the second exponential to be deconvolved"
     cr2::U
-    "the fraction faktor which the second exponential contributes"
+    "the fraction factor which the second exponential contributes"
     f::V
 end
 

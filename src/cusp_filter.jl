@@ -6,7 +6,8 @@
 
 CUSP filter.
 
-For the definition the filter and a discussion of the filter properties, see
+For the definition of the filter and a discussion of its properties, see
+["Improvement of the energy resolution via an optimized digital signal processing in GERDA Phase I", Eur. Phys. J. C 75, 255 (2015)](https://doi.org/10.1140/epjc/s10052-015-3409-6).
 
 Constructors:
 
@@ -59,10 +60,10 @@ end
     cusp_charge_filter_coeffs(N::Int, sigma::U, FT::Int, tau::V, beta::W
     ) where {U, V, W <: AbstractFloat}
 
-return a vector representing the cusp filter applicaible on a charge 
-signal, where `N` is the total length of the filter, `FT` the length of 
-the flat top, `sigma` the filter shaping time,`tau` the decay constant 
-and `a` the scaling factor.
+return a vector representing the cusp filter applicable to a charge
+signal, where `N` is the total length of the filter, `FT` the length of
+the flat top, `sigma` the filter shaping time, `tau` the decay constant
+and `beta` the scaling factor.
 """
 function cusp_charge_filter_coeffs(N::Int, sigma::U, FT::Int, tau::V, beta::W
     ) where {U, V, W <: AbstractFloat}

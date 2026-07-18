@@ -4,7 +4,7 @@
 """
     abstract type FilteringType
 
-Indended as a type parameter to designate the behavior of a filter
+Intended as a type parameter to designate the behavior of a filter
 as linear or nonlinear.
 
 Subtypes are [`LinearFiltering`](@ref) and [`NonlinearFiltering`](@ref).
@@ -50,10 +50,10 @@ Invertible filters should also implement
 * `InverseFunctions.inverse(flt::SomeFilter)`
 
 Note that while a filter may have an inverse, it may, depending on the
-filter paramters, be very unstable in the presence of additional noise.
+filter parameters, be very unstable in the presence of additional noise.
 Filters with a high-pass characteristic pass high-frequency noise, so their
 inverses pass such noise as well without amplifying it (substantially).
-Filters with a low-pass characteristic, on the other hand, attentuate
+Filters with a low-pass characteristic, on the other hand, attenuate
 high-frequency noise, so their inverses amplify such noise and are
 typically not useful to deconvolve signals in practical applications.
 """
@@ -74,7 +74,7 @@ end
 """
     abstract type AbstractRadSigFilterInstance{FT<:FilteringType}
 
-Abstract type for signal filter instances. Filter instances are specilized to
+Abstract type for signal filter instances. Filter instances are specialized to
 a specific length and numerical type of input and output.
 
 Filter instances are callable as `(fi::SomeFilterInstance)(input)` and come
@@ -379,7 +379,7 @@ export AbstractRadIIRFilter
 
 
 """
-    abstract type AbstractRadFIRFilter <: AbstractRadLinearFilter
+    abstract type AbstractRadFIRFilter <: AbstractRadSigFilter{LinearFiltering}
 
 Abstract type for FIR filters.
 """
