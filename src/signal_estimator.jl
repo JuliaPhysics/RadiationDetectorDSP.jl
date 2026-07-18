@@ -32,7 +32,7 @@ $(TYPEDFIELDS)
     T <: RealQuantity
 } <: DNIMethod
     "polynomial degree"
-    degree::Int = 2,
+    degree::Int = 2
 
     "length"
     length::T
