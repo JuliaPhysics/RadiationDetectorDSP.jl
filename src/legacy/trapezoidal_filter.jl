@@ -33,26 +33,32 @@ function charge_trapflt!(samples::AbstractVector{<:RealOrSIMD{<:AbstractFloat}},
 
         @inbounds @simd for j in idxs[offs3+1:offs4] acc += samples[j] end
         @inbounds @simd for j in idxs[offs1+1:offs2] acc -= samples[j] end
-        samples[idxs[1]] = acc * norm_factor
- 
-        @inbounds @simd for i in idxs[2:n-offs4]
-            acc = acc + samples[i + offs1] - samples[i + offs2] - samples[i + offs3] + samples[i + offs4]
+
+        # Read window edges before overwriting samples[i], keeping the
+        # in-place single pass valid:
+        @inbounds for i in idxs[1:n-offs4]
+            v1 = samples[i + offs1]; v2 = samples[i + offs2]
+            v3 = samples[i + offs3]; v4 = samples[i + offs4]
             samples[i] = acc * norm_factor
+            acc = acc + v1 - v2 - v3 + v4
         end
 
-        @inbounds @simd for i in idxs[n-offs4+1:n-offs3]
-            acc = acc + samples[i + offs1] - samples[i + offs2] - samples[i + offs3] + padding_value
+        @inbounds for i in idxs[n-offs4+1:n-offs3]
+            v1 = samples[i + offs1]; v2 = samples[i + offs2]; v3 = samples[i + offs3]
             samples[i] = acc * norm_factor
+            acc = acc + v1 - v2 - v3 + padding_value
         end
 
-        @inbounds @simd for i in idxs[n-offs3+1:n-offs2]
-            acc = acc + samples[i + offs1] - samples[i + offs2]
+        @inbounds for i in idxs[n-offs3+1:n-offs2]
+            v1 = samples[i + offs1]; v2 = samples[i + offs2]
             samples[i] = acc * norm_factor
+            acc = acc + v1 - v2
         end
 
-        @inbounds @simd for i in idxs[n-offs2+1:n-offs1]
-            acc = acc + samples[i + offs1] - padding_value
+        @inbounds for i in idxs[n-offs2+1:n-offs1]
+            v1 = samples[i + offs1]
             samples[i] = acc * norm_factor
+            acc = acc + v1 - padding_value
         end
     end
 
