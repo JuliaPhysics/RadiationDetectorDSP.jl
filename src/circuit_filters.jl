@@ -305,11 +305,11 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-Base.@kwdef struct IntegratorCRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+Base.@kwdef struct IntegratorCRFilter{T<:RealQuantity,U<:RealQuantity} <: AbstractRadIIRFilter
     "Filter gain"
     gain::T = 1
     "CR time constant"
-    cr::T
+    cr::U
 end
 
 export IntegratorCRFilter
@@ -343,11 +343,11 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-Base.@kwdef struct IntegratorModCRFilter{T<:RealQuantity} <: AbstractRadIIRFilter
+Base.@kwdef struct IntegratorModCRFilter{T<:RealQuantity,U<:RealQuantity} <: AbstractRadIIRFilter
     "Filter gain"
     gain::T = 1
     "CR time constant"
-    cr::T
+    cr::U
 end
 
 export IntegratorModCRFilter
