@@ -140,7 +140,7 @@ fltinstance(flt::AbstractRadSigFilter, input::RDWaveform) = fltinstance(flt, smp
 Apply filter `flt` or filter instance `fi` to signal `input` and store the
 filtered signal in `output`. Return `output`.
 """
-function dfilt! end
+function rdfilt! end
 export rdfilt!
 
 # ToDo: Do we want this?
