@@ -1,6 +1,6 @@
 # This file is a part of RadiationDetectorDSP.jl, licensed under the MIT License (MIT).
 
-include("test_utils.jl")
+isdefined(@__MODULE__, :gen_test_waveforms) || include("test_utils.jl")
 
 using IntervalSets
 

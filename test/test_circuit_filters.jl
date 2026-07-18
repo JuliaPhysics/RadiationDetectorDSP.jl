@@ -87,6 +87,46 @@ using Statistics
         @test var(tail) < 1e-5
     end
 
+    @testset "ModCRFilter full-amplitude step response" begin
+        flt = ModCRFilter(cr = 15u"ns" * 10)
+        output = flt(step_wf)
+        @test maximum(output.signal) ≈ 1.0
+    end
+
+    @testset "DifferentiatorFilter" begin
+        x = current_wf
+        flt = DifferentiatorFilter(gain = 2.0)
+        @test inverse(flt) isa IntegratorFilter
+        @test inverse(inverse(flt)) == flt
+        InverseFunctions.test_inverse(flt, x; compare = cmpwf)
+    end
+
+    @testset "IntegratorCRFilter" begin
+        x = current_wf
+        flt = IntegratorCRFilter(gain = 2.0, cr = 15u"ns" * 10)
+        @test flt(x) isa RDWaveform
+        InverseFunctions.test_inverse(FirstOrderIIR(IntegratorCRFilter(2.0, 10.0)), x.signal)
+    end
+
+    @testset "IntegratorModCRFilter" begin
+        x = current_wf
+        flt = IntegratorModCRFilter(gain = 2.0, cr = 15u"ns" * 10)
+        @test flt(x) isa RDWaveform
+        flt_smpl = IntegratorModCRFilter(2.0, 10.0)
+        # Must delegate to its own FirstOrderIIR representation:
+        @test fltinstance(flt_smpl, smplinfo(x.signal)) == fltinstance(FirstOrderIIR(flt_smpl), smplinfo(x.signal))
+        InverseFunctions.test_inverse(FirstOrderIIR(flt_smpl), x.signal)
+    end
+
+    @testset "SimpleCSAFilter inverse" begin
+        # ToDo: inverse(::SimpleCSAFilter) only works for time constants in
+        # units of samples, it materializes a BiquadFilter directly.
+        x = current_wf.signal
+        flt = SimpleCSAFilter(tau_rise = 20.0, tau_decay = 500.0, gain = 2.0)
+        @test inverse(flt) isa BiquadFilter
+        @test inverse(flt)(flt(x)) ≈ x
+    end
+
     @testset "SecondOrderCRFilter" begin
         x = current_wf
         plot(x)
