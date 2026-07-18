@@ -29,7 +29,7 @@ Adapt.adapt_structure(to, flt::BiquadFilter) = flt
 
 
 function fltinstance(flt::BiquadFilter, si::SamplingInfo{T}) where T
-    BiquadFilterInstance{T}(flt.b_012, flt.a_12, _smpllen(si))
+    BiquadFilterInstance{_floattype(T)}(flt.b_012, flt.a_12, _smpllen(si))
 end
 
 
@@ -58,7 +58,7 @@ struct BiquadFilterInstance{T} <: AbstractRadSigFilterInstance{LinearFiltering}
     n::Int
 end
 
-@inline function rdfilt!(Y::AbstractVector{T}, fi::BiquadFilterInstance{T}, X::AbstractVector{T}) where {T<:Real}
+@inline function rdfilt!(Y::AbstractVector{T}, fi::BiquadFilterInstance{T}, X::AbstractVector{U}) where {T<:Real,U<:Real}
     a1, a2 = fi.a_12
     neg_a1, neg_a2 = -a1, -a2
     b0, b1, b2 = fi.b_012
