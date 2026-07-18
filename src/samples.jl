@@ -73,11 +73,11 @@ smplinfo(wf::RDWaveform{T,U}) where {T,U} = SamplingInfo{U}(wf.time)
 
 
 """
-    smplinfo(smpls::AbstractSamples)::SamplingInfo
-    smplinfo(wf::RDWaveform{T,U})::RDWaveform
+    elsmplinfo(smpls::AbstractArray{<:AbstractSamples})::SamplingInfo
+    elsmplinfo(wfs::AbstractArray{<:RDWaveform})::SamplingInfo
 
-Get sampling information an array of vectors of samples, resp. an array of
-waveform. All elements must have equal samling information.
+Get the common sampling information of an array of sample vectors, resp. an
+array of waveforms. All elements must have equal sampling information.
 """
 function elsmplinfo end
 export elsmplinfo

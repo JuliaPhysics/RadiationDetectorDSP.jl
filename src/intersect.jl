@@ -4,7 +4,7 @@
 """
     struct Intersect <: Function
 
-Finds the intersects of a Y with a threshold
+Finds the intersections of a signal with a threshold.
 
 Constructors:
 

@@ -49,7 +49,7 @@ Estimates a signal at a given position `x`.
 Usage:
 
 ```julia
-(f::SamplesOrWaveform)(input::RDWaveform, x::RealQuantity)
+(f::SignalEstimator)(input::SamplesOrWaveform, x::RealQuantity)
 ```
 
 Constructors:

@@ -2,7 +2,7 @@
 
 
 """
-    struct TrapezoidalChargeFilter <: AbstractRadNonlinearFilter
+    struct TrapezoidalChargeFilter <: AbstractRadFIRFilter
 
 Filter that responds to a step signal with a trapezoidal pulse.
 

@@ -4,7 +4,7 @@
 """
     struct FirstOrderIIR{T<:RealQuantity} <: AbstractRadIIRFilter
 
-A [biquad filter](https://en.wikipedia.org/wiki/Digital_biquad_filter).
+A first-order IIR filter.
 
 Constructors:
 

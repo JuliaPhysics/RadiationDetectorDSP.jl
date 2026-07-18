@@ -4,8 +4,7 @@
 """
     abstract type ConvolutionMethod
 
-Indended as a type parameter to designate the behavior of a filter
-as linear or nonlinear.
+Abstract type for methods of computing filter convolutions.
 
 Subtypes are [`DirectConvolution`](@ref) and [`FFTConvolution`](@ref).
 """

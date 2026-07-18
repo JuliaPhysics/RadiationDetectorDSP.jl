@@ -6,7 +6,7 @@
 
 Zero area cusp (ZAC) filter.
 
-For the definition the filter and a discussion of the filter properties, see
+For the definition of the filter and a discussion of its properties, see
 ["Improvement of the energy resolution via an optimized digital signal processing in GERDA Phase I", Eur. Phys. J. C 75, 255 (2015)](https://doi.org/10.1140/epjc/s10052-015-3409-6).
 
 Constructors:
@@ -61,7 +61,7 @@ end
         N::Int, sigma::V, FT::Int, tau::T, beta::U
         ) where {V, T, U <: AbstractFloat}
 
-return a vector representing the zac filter applicaible on a charge 
+return a vector representing the ZAC filter applicable to a charge
 signal, where `N` is the total length of the filter, `FT` the length of 
 the flat top, `sigma` the filter shaping time, `tau` the decay constant
 and beta an additional scaling factor.
