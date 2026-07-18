@@ -2,12 +2,12 @@
 
 Base.@propagate_inbounds _get_or_view(x, idxs...) = getindex(x, idxs...)
 
-Base.@propagate_inbounds _get_or_view(x::AbstractArray, idxs::Vararg{N,T}) where {N,T<:Integer} = getindex(x, idxs...)
+Base.@propagate_inbounds _get_or_view(x::AbstractArray, idxs::Vararg{T,N}) where {T<:Integer,N} = getindex(x, idxs...)
 Base.@propagate_inbounds _get_or_view(x::AbstractArray, idxs...) = _get_or_view_array(x, Base.to_indices(x, idxs))
 Base.@propagate_inbounds _get_or_view_array(x::AbstractArray, idxs::NTuple{N,T}) where {N,T<:Integer} = getindex(x, idxs...)
 Base.@propagate_inbounds _get_or_view_array(x::AbstractArray, idxs::Tuple) = view(x, idxs...)
 
-Base.@propagate_inbounds _get_or_view(x::AbstractRange, idxs::Vararg{N,T}) where {N,T<:Integer} = getindex(x, idxs...)
+Base.@propagate_inbounds _get_or_view(x::AbstractRange, idxs::Vararg{T,N}) where {T<:Integer,N} = getindex(x, idxs...)
 Base.@propagate_inbounds _get_or_view(x::AbstractRange, idxs...) = getindex(x, idxs...)
 
 
