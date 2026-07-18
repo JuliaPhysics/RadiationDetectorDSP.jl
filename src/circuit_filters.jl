@@ -352,17 +352,17 @@ end
 export IntegratorModCRFilter
 
 function fltinstance(flt::IntegratorModCRFilter, fi::SamplingInfo)
-    fltinstance(FirstOrderIIR(IntegratorCRFilter(flt.gain, ustrip(NoUnits, flt.cr / step(fi.axis)))), fi)
+    fltinstance(FirstOrderIIR(IntegratorModCRFilter(flt.gain, ustrip(NoUnits, flt.cr / step(fi.axis)))), fi)
 end
 
 InverseFunctions.inverse(flt::IntegratorModCRFilter) = inverse(FirstOrderIIR(flt))
 
-function BiquadFirstOrderIIRFilter(flt::IntegratorModCRFilter)
+function FirstOrderIIR(flt::IntegratorModCRFilter)
     CR = float(flt.cr)
     α = 1 / (1 + CR)
     T = typeof(α)
     g = T(flt.gain)
-    FirstOrderIIR((g, T(0)), (α - T(1)))
+    FirstOrderIIR((g, T(0)), (α - T(1),))
 end
 
 
