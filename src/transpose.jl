@@ -63,5 +63,5 @@ end
 
 function _nonlazy_transpose(X::GPUArraysCore.AbstractGPUArray{<:Number,2})
     Y = similar(X, reverse(size(X)));
-    _ka_nonlazy_transpose!(X, Y)
+    _ka_nonlazy_transpose!(Y, X)
 end
