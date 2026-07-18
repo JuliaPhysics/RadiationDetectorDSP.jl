@@ -65,8 +65,8 @@ export AbstractRadSigFilter
 # ToDo: Support mutating broadcasts (needs a bc_rdfilt! that takes chained filters into account)
 function Base.Broadcast.broadcasted(flt::AbstractRadSigFilter, inputs)
     X = Base.materialize(inputs)
-    fi = fltinstance(flt, elsmplinfo(inputs))
-    bc_rdfilt(fi, inputs)
+    fi = fltinstance(flt, elsmplinfo(X))
+    bc_rdfilt(fi, X)
 end
 
 
