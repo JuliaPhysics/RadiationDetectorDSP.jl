@@ -11,6 +11,7 @@ Test.@testset "Package RadiationDetectorDSP" begin
     include("test_truncate_filter.jl")
     include("test_convolution_filter.jl")
     include("test_biquad_filter.jl")
+    include("test_first_order_iir.jl")
     include("test_circuit_filters.jl")
     include("test_trapezoidal_filter.jl")
     include("test_sg_filter.jl")
