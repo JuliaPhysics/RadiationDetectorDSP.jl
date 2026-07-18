@@ -60,7 +60,7 @@ ConvolutionFilter(method::ConvolutionMethod, coeffs::AbstractVector{<:RealQuanti
 
 export ConvolutionFilter
 
-Adapt.adapt_structure(to, flt::ConvolutionFilter) = ConvolutionFilter(flt.method, Adapt.adapt_structure(to, flt.coeffs))
+Adapt.adapt_structure(to, flt::ConvolutionFilter) = ConvolutionFilter(flt.method, adapt(to, flt.coeffs), flt.offset)
 
 function fltinstance(flt::ConvolutionFilter{DirectConvolution}, si::SamplingInfo{T}) where T
     reverse_h = reverse(T.(flt.coeffs)) # ToDo: Optimize
