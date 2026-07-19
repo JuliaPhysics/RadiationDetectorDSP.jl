@@ -1,17 +1,13 @@
 # This file is a part of RadiationDetectorDSP.jl, licensed under the MIT License (MIT).
 
-using RadiationDetectorDSP
-using Test
+isdefined(@__MODULE__, :gen_test_waveforms) || include("test_utils.jl")
 
-using ArraysOfArrays, FillArrays
 using JLArrays
-
-using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
 import GPUArraysCore
 import KernelAbstractions
 
-GPUArraysCore.allowscalar(true)
+GPUArraysCore.allowscalar(false)
 
 
 @testset "KernelAbstractions filtering with JLArrays" begin
@@ -33,7 +29,7 @@ GPUArraysCore.allowscalar(true)
     for flt in filters
         fi = fltinstance(flt, si)
         Y_cpu = bc_rdfilt(fi, inputs_cpu)
-        Y_gpu = bc_rdfilt(fi, inputs_gpu)
+        Y_gpu = with_allowscalar(() -> bc_rdfilt(fi, inputs_gpu))
         @test flatview(Y_gpu) isa JLArray
         @test Array(flatview(Y_gpu)) ≈ flatview(Y_cpu)
     end
