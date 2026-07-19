@@ -2,6 +2,31 @@
 
 
 """
+    RadiationDetectorDSP._timeparams(::Type{<:AbstractRadSigFilter})::NTuple{N,Symbol}
+
+The fields of a filter type that are time constants, to be converted to
+units of samples by [`_in_sampleunits`](@ref).
+"""
+function _timeparams end
+
+"""
+    RadiationDetectorDSP._in_sampleunits(flt::AbstractRadSigFilter, si::SamplingInfo)
+
+Return a filter equal to `flt` but with all time-constant fields (see
+[`_timeparams`](@ref)) converted to units of samples of `si`.
+"""
+function _in_sampleunits(flt::F, si::SamplingInfo) where {F<:AbstractRadSigFilter}
+    delta_t = step(si.axis)
+    timeparams = _timeparams(F)
+    newfields = map(fieldnames(F)) do p
+        x = getfield(flt, p)
+        p in timeparams ? ustrip(NoUnits, x / delta_t) : x
+    end
+    getfield(parentmodule(F), nameof(F))(newfields...)
+end
+
+
+"""
     struct RCFilter <: AbstractRadIIRFilter
 
 A first-order RC lowpass filter.
@@ -26,9 +51,9 @@ end
 
 export RCFilter
 
-function fltinstance(flt::RCFilter, fi::SamplingInfo)
-    fltinstance(FirstOrderIIR(RCFilter(ustrip(NoUnits, flt.rc / step(fi.axis)))), fi)
-end
+_timeparams(::Type{<:RCFilter}) = (:rc,)
+
+fltinstance(flt::RCFilter, si::SamplingInfo) = fltinstance(FirstOrderIIR(_in_sampleunits(flt, si)), si)
 
 InverseFunctions.inverse(flt::RCFilter) = InvRCFilter(flt.rc)
 
@@ -61,9 +86,9 @@ end
 
 export InvRCFilter
 
-function fltinstance(flt::InvRCFilter, fi::SamplingInfo)
-    fltinstance(FirstOrderIIR(InvRCFilter(ustrip(NoUnits, flt.rc / step(fi.axis)))), fi)
-end
+_timeparams(::Type{<:InvRCFilter}) = (:rc,)
+
+fltinstance(flt::InvRCFilter, si::SamplingInfo) = fltinstance(FirstOrderIIR(_in_sampleunits(flt, si)), si)
 
 InverseFunctions.inverse(flt::InvRCFilter) = RCFilter(flt.rc)
 
@@ -101,9 +126,9 @@ end
 
 export CRFilter
 
-function fltinstance(flt::CRFilter, fi::SamplingInfo)
-    fltinstance(FirstOrderIIR(CRFilter(ustrip(NoUnits, flt.cr / step(fi.axis)))), fi)
-end
+_timeparams(::Type{<:CRFilter}) = (:cr,)
+
+fltinstance(flt::CRFilter, si::SamplingInfo) = fltinstance(FirstOrderIIR(_in_sampleunits(flt, si)), si)
 
 InverseFunctions.inverse(flt::CRFilter) = InvCRFilter(flt.cr)
 
@@ -135,9 +160,9 @@ end
 
 export InvCRFilter
 
-function fltinstance(flt::InvCRFilter, fi::SamplingInfo)
-    fltinstance(FirstOrderIIR(InvCRFilter(ustrip(NoUnits, flt.cr / step(fi.axis)))), fi)
-end
+_timeparams(::Type{<:InvCRFilter}) = (:cr,)
+
+fltinstance(flt::InvCRFilter, si::SamplingInfo) = fltinstance(FirstOrderIIR(_in_sampleunits(flt, si)), si)
 
 InverseFunctions.inverse(flt::InvCRFilter) = CRFilter(flt.cr)
 
@@ -179,9 +204,9 @@ end
 
 export ModCRFilter
 
-function fltinstance(flt::ModCRFilter, fi::SamplingInfo)
-    fltinstance(FirstOrderIIR(ModCRFilter(ustrip(NoUnits, flt.cr / step(fi.axis)))), fi)
-end
+_timeparams(::Type{<:ModCRFilter}) = (:cr,)
+
+fltinstance(flt::ModCRFilter, si::SamplingInfo) = fltinstance(FirstOrderIIR(_in_sampleunits(flt, si)), si)
 
 InverseFunctions.inverse(flt::ModCRFilter) = InvModCRFilter(flt.cr)
 
@@ -213,9 +238,9 @@ end
 
 export InvModCRFilter
 
-function fltinstance(flt::InvModCRFilter, fi::SamplingInfo)
-    fltinstance(FirstOrderIIR(InvModCRFilter(ustrip(NoUnits, flt.cr / step(fi.axis)))), fi)
-end
+_timeparams(::Type{<:InvModCRFilter}) = (:cr,)
+
+fltinstance(flt::InvModCRFilter, si::SamplingInfo) = fltinstance(FirstOrderIIR(_in_sampleunits(flt, si)), si)
 
 InverseFunctions.inverse(flt::InvModCRFilter) = ModCRFilter(flt.cr)
 
@@ -314,9 +339,9 @@ end
 
 export IntegratorCRFilter
 
-function fltinstance(flt::IntegratorCRFilter, fi::SamplingInfo)
-    fltinstance(FirstOrderIIR(IntegratorCRFilter(flt.gain, ustrip(NoUnits, flt.cr / step(fi.axis)))), fi)
-end
+_timeparams(::Type{<:IntegratorCRFilter}) = (:cr,)
+
+fltinstance(flt::IntegratorCRFilter, si::SamplingInfo) = fltinstance(FirstOrderIIR(_in_sampleunits(flt, si)), si)
 
 InverseFunctions.inverse(flt::IntegratorCRFilter) = inverse(FirstOrderIIR(flt))
 
@@ -352,9 +377,9 @@ end
 
 export IntegratorModCRFilter
 
-function fltinstance(flt::IntegratorModCRFilter, fi::SamplingInfo)
-    fltinstance(FirstOrderIIR(IntegratorModCRFilter(flt.gain, ustrip(NoUnits, flt.cr / step(fi.axis)))), fi)
-end
+_timeparams(::Type{<:IntegratorModCRFilter}) = (:cr,)
+
+fltinstance(flt::IntegratorModCRFilter, si::SamplingInfo) = fltinstance(FirstOrderIIR(_in_sampleunits(flt, si)), si)
 
 InverseFunctions.inverse(flt::IntegratorModCRFilter) = inverse(FirstOrderIIR(flt))
 
@@ -411,13 +436,9 @@ end
 
 export SimpleCSAFilter
 
-function fltinstance(flt::SimpleCSAFilter, fi::SamplingInfo)
-    fltinstance(BiquadFilter(SimpleCSAFilter(
-        ustrip(NoUnits, flt.tau_rise / step(fi.axis)),
-        ustrip(NoUnits, flt.tau_decay / step(fi.axis)),
-        flt.gain,
-    )), fi)
-end
+_timeparams(::Type{<:SimpleCSAFilter}) = (:tau_rise, :tau_decay)
+
+fltinstance(flt::SimpleCSAFilter, si::SamplingInfo) = fltinstance(BiquadFilter(_in_sampleunits(flt, si)), si)
 
 InverseFunctions.inverse(flt::SimpleCSAFilter) = inverse(BiquadFilter(flt))
 
@@ -454,9 +475,9 @@ end
 
 export SecondOrderCRFilter
 
-function fltinstance(flt::SecondOrderCRFilter, fi::SamplingInfo)
-    fltinstance(BiquadFilter(SecondOrderCRFilter(ustrip(NoUnits, flt.cr / step(fi.axis)), ustrip(NoUnits, flt.cr2 / step(fi.axis)), flt.f )), fi)
-end
+_timeparams(::Type{<:SecondOrderCRFilter}) = (:cr, :cr2)
+
+fltinstance(flt::SecondOrderCRFilter, si::SamplingInfo) = fltinstance(BiquadFilter(_in_sampleunits(flt, si)), si)
 
 InverseFunctions.inverse(flt::SecondOrderCRFilter) = InvSecondOrderCRFilter(flt.cr, flt.cr2, flt.f)
 
@@ -499,9 +520,9 @@ end
 
 export InvSecondOrderCRFilter
 
-function fltinstance(flt::InvSecondOrderCRFilter, fi::SamplingInfo)
-    fltinstance(BiquadFilter(InvSecondOrderCRFilter(ustrip(NoUnits, flt.cr / step(fi.axis)), ustrip(NoUnits, flt.cr2 / step(fi.axis)), flt.f )), fi)
-end
+_timeparams(::Type{<:InvSecondOrderCRFilter}) = (:cr, :cr2)
+
+fltinstance(flt::InvSecondOrderCRFilter, si::SamplingInfo) = fltinstance(BiquadFilter(_in_sampleunits(flt, si)), si)
 
 InverseFunctions.inverse(flt::InvSecondOrderCRFilter) = SecondOrderCRFilter(flt.cr, flt.cr2, flt.f)
 
