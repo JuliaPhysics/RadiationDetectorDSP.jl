@@ -12,55 +12,17 @@ export shift_waveform
 
 shift_waveform(signal::AbstractSamples, a::RealQuantity) = signal .+ a
 
-shift_waveform(wf::RDWaveform, a::RealQuantity) = RDWaveform(wf.time, shift_waveform(wf.signal, a))
-
-function Base.Broadcast.broadcasted(::typeof(shift_waveform), inputs, a)
-    bc_shift_waveform(Base.materialize(inputs), Base.materialize(a))
-end
-
-_nobcspec_shift_waveform(inputs, a) = shift_waveform(inputs, a)
-bc_shift_waveform(inputs, a) = _nobcspec_shift_waveform.(inputs, a)
-
-function bc_shift_waveform(inputs::ArrayOfRDWaveforms, a)
-    ArrayOfRDWaveforms((inputs.time, broadcast(shift_waveform, inputs.signal, a)))
-end
-
-function bc_shift_waveform(inputs::ArrayOfSimilarVectors{<:RealQuantity}, a)
-    X = flatview(inputs)
-    Y = X .+ a'
-    ArrayOfSimilarVectors(Y)
-end
-
 
 """
     multiply_waveform(signal::AbstractSamples, a::RealQuantity)
     multiply_waveform(wf::RDWaveform, a::RealQuantity)
-    
+
 Multiplies each sample of a waveform by `a`.
 """
 function multiply_waveform end
 export multiply_waveform
 
 multiply_waveform(signal::AbstractSamples, a::RealQuantity) = signal .* a
-
-multiply_waveform(wf::RDWaveform, a::RealQuantity) = RDWaveform(wf.time, multiply_waveform(wf.signal, a))
-
-function Base.Broadcast.broadcasted(::typeof(multiply_waveform), inputs, a)
-    bc_multiply_waveform(Base.materialize(inputs), Base.materialize(a))
-end
-
-_nobcspec_multiply_waveform(inputs, a) = multiply_waveform(inputs, a)
-bc_multiply_waveform(inputs, a) = _nobcspec_multiply_waveform.(inputs, a)
-
-function bc_multiply_waveform(inputs::ArrayOfRDWaveforms, a)
-    ArrayOfRDWaveforms((inputs.time, broadcast(multiply_waveform, inputs.signal, a)))
-end
-
-function bc_multiply_waveform(inputs::ArrayOfSimilarVectors{<:RealQuantity}, a)
-    X = flatview(inputs)
-    Y = X .* a'
-    ArrayOfSimilarVectors(Y)
-end
 
 
 """
@@ -74,21 +36,25 @@ export reverse_waveform
 
 reverse_waveform(signal::AbstractSamples) = reverse(signal)
 
-reverse_waveform(wf::RDWaveform) = RDWaveform(wf.time, reverse_waveform(wf.signal))
 
-function Base.Broadcast.broadcasted(::typeof(reverse_waveform), inputs)
-    bc_reverse_waveform(Base.materialize(inputs))
+const _WaveformOp = Union{typeof(shift_waveform), typeof(multiply_waveform), typeof(reverse_waveform)}
+
+(f::_WaveformOp)(wf::RDWaveform, args::RealQuantity...) = RDWaveform(wf.time, f(wf.signal, args...))
+
+function Base.Broadcast.broadcasted(f::_WaveformOp, bc_inputs, bc_args...)
+    _bc_wfop(f, Base.materialize(bc_inputs), map(Base.materialize, bc_args)...)
 end
 
-_nobcspec_reverse_waveform(inputs) = reverse_waveform(inputs)
-bc_reverse_waveform(inputs) = _nobcspec_reverse_waveform.(inputs)
+_bc_wfop(f::_WaveformOp, inputs, args...) = broadcast((input, as...) -> f(input, as...), inputs, args...)
 
-function bc_reverse_waveform(inputs::ArrayOfRDWaveforms)
-    ArrayOfRDWaveforms((inputs.time, broadcast(reverse_waveform, inputs.signal)))
+function _bc_wfop(f::_WaveformOp, inputs::ArrayOfRDWaveforms, args...)
+    ArrayOfRDWaveforms((inputs.time, _bc_wfop(f, inputs.signal, args...)))
 end
 
-function bc_reverse_waveform(inputs::ArrayOfSimilarVectors{<:RealQuantity})
-    X = flatview(inputs)
-    Y = reverse(X, dims = 1)
-    ArrayOfSimilarVectors(Y)
+function _bc_wfop(f::_WaveformOp, inputs::ArrayOfSimilarVectors{<:RealQuantity}, args...)
+    ArrayOfSimilarVectors(_bc_wfop_flat(f, flatview(inputs), args...))
 end
+
+_bc_wfop_flat(::typeof(shift_waveform), X::AbstractMatrix{<:RealQuantity}, a) = X .+ a'
+_bc_wfop_flat(::typeof(multiply_waveform), X::AbstractMatrix{<:RealQuantity}, a) = X .* a'
+_bc_wfop_flat(::typeof(reverse_waveform), X::AbstractMatrix{<:RealQuantity}) = reverse(X, dims = 1)
