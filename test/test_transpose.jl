@@ -1,9 +1,7 @@
 # This file is a part of RadiationDetectorDSP.jl, licensed under the MIT License (MIT).
 
-using RadiationDetectorDSP
-using Test
+isdefined(@__MODULE__, :gen_test_waveforms) || include("test_utils.jl")
 
-using Adapt
 using LinearAlgebra
 using JLArrays
 
@@ -11,7 +9,7 @@ using RadiationDetectorDSP: _lazy_transpose, _nonlazy_transpose, _row_major, _co
 
 import GPUArraysCore
 
-GPUArraysCore.allowscalar(true)
+GPUArraysCore.allowscalar(false)
 
 
 @testset "transpose" begin
@@ -23,7 +21,7 @@ GPUArraysCore.allowscalar(true)
         @test At == transpose(A)
 
         A_gpu = JLArray(A)
-        At_gpu = _nonlazy_transpose(A_gpu)
+        At_gpu = with_allowscalar(() -> _nonlazy_transpose(A_gpu))
         @test At_gpu isa JLArray
         @test size(At_gpu) == (5, 7)
         @test Array(At_gpu) == transpose(A)
@@ -33,7 +31,7 @@ GPUArraysCore.allowscalar(true)
         # Tile-size edge cases of the KA transpose kernel:
         for sz in ((16, 16), (17, 33), (1, 40))
             B = rand(Float32, sz...)
-            @test Array(_nonlazy_transpose(JLArray(B))) == transpose(B)
+            @test Array(with_allowscalar(() -> _nonlazy_transpose(JLArray(B)))) == transpose(B)
         end
     end
 
@@ -51,7 +49,7 @@ GPUArraysCore.allowscalar(true)
         @test adapt(CPUNormAdaptor(), JLArray(A)) isa Array
         @test adapt(CPUNormAdaptor(), JLArray(A)) == A
 
-        At = adapt(CPUNormAdaptor(), transpose(JLArray(A)))
+        At = with_allowscalar(() -> adapt(CPUNormAdaptor(), transpose(JLArray(A))))
         @test At == transpose(A)
     end
 end

@@ -10,6 +10,21 @@ using Adapt
 
 using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
+import GPUArraysCore
+
+
+# Kernels on the KernelAbstractions CPU backend index GPU-style arrays
+# element-wise, possibly on spawned tasks, so the task-local
+# GPUArraysCore.@allowscalar is not sufficient:
+function with_allowscalar(f)
+    GPUArraysCore.allowscalar(true)
+    try
+        f()
+    finally
+        GPUArraysCore.allowscalar(false)
+    end
+end
+
 
 # KernelAbstractions runs CPU kernels via POCL, which fails to compile them on 32-bit hosts
 # (JuliaGPU/GPUCompiler.jl#1085)
