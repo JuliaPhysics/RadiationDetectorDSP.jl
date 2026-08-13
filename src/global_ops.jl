@@ -94,27 +94,30 @@ function bc_reverse_waveform(inputs::ArrayOfSimilarVectors{<:RealQuantity})
 end
 
 """
-    create_superpuls(wfs::AbstractVector{<:RDWaveform})
+    sum_waveforms(wfs::AbstractVector{<:RDWaveform})
 
-Creates a superpulse (sample-wise sum) of an array of waveforms.
+Creates a sample-wise sum of an array of waveforms.
 All waveforms are assumed to share the same time axis.
 """
-function create_superpuls end
-export create_superpuls
+function sum_waveforms end
+export sum_waveforms
 
-function create_superpuls(wfs::AbstractVector{<:RDWaveform})
+function sum_waveforms(wfs::AbstractVector{<:RDWaveform})
     time = first(wfs).time
-    signal = create_superpuls(map(wf -> wf.signal, wfs))
+    @assert all(wf -> wf.time == time, wfs) "all waveforms must share the same time axis"
+    signal = sum_waveforms(map(wf -> wf.signal, wfs))
     RDWaveform(time, signal)
 end
 
-create_superpuls(signals::AbstractVector{<:AbstractSamples}) = sum(signals)
+sum_waveforms(signals::AbstractVector{<:AbstractSamples}) = sum(signals)
 
-function create_superpuls(wfs::ArrayOfRDWaveforms)
-    RDWaveform(wfs.time, create_superpuls(wfs.signal))
+function sum_waveforms(wfs::ArrayOfRDWaveforms)
+    time = first(wfs.time)
+    @assert all(==(time), wfs.time) "all waveforms must share the same time axis"
+    RDWaveform(time, sum_waveforms(wfs.signal))
 end
 
-function create_superpuls(signals::ArrayOfSimilarVectors{<:RealQuantity})
+function sum_waveforms(signals::ArrayOfSimilarVectors{<:RealQuantity})
     X = flatview(signals)
     vec(sum(X, dims = 2))
 end

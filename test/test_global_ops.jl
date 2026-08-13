@@ -15,13 +15,13 @@ include("test_utils.jl")
         # ToDo: Add more detailed tests for shift_waveform
     end
 
-    @testset "create_superpuls" begin
+    @testset "sum_waveforms" begin
         wfs_x = gen_test_waveforms()
-        @test @inferred(create_superpuls(wfs_x)) ≈ RDWaveform(wfs_x[1].time, sum(map(wf -> wf.signal, wfs_x)))
-        @test create_superpuls(wfs_x).time == wfs_x[1].time
-        @test create_superpuls(wfs_x).signal isa AbstractVector
-        @test create_superpuls([wfs_x[1]]) ≈ wfs_x[1]
-        @test create_superpuls(wfs_x).signal ≈ sum(broadcast(wf -> wf.signal, wfs_x))
-        @test_throws BoundsError create_superpuls(similar(wfs_x, 0))
+        @test @inferred(sum_waveforms(wfs_x)) ≈ RDWaveform(wfs_x[1].time, sum(map(wf -> wf.signal, wfs_x)))
+        @test sum_waveforms(wfs_x).time == wfs_x[1].time
+        @test sum_waveforms(wfs_x).signal isa AbstractVector
+        @test sum_waveforms([wfs_x[1]]) ≈ wfs_x[1]
+        @test sum_waveforms(wfs_x).signal ≈ sum(broadcast(wf -> wf.signal, wfs_x))
+        @test_throws BoundsError sum_waveforms(similar(wfs_x, 0))
     end
 end
