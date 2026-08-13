@@ -92,3 +92,29 @@ function bc_reverse_waveform(inputs::ArrayOfSimilarVectors{<:RealQuantity})
     Y = reverse(X, dims = 1)
     ArrayOfSimilarVectors(Y)
 end
+
+"""
+    create_superpuls(wfs::AbstractVector{<:RDWaveform})
+
+Creates a superpulse (sample-wise sum) of an array of waveforms.
+All waveforms are assumed to share the same time axis.
+"""
+function create_superpuls end
+export create_superpuls
+
+function create_superpuls(wfs::AbstractVector{<:RDWaveform})
+    time = first(wfs).time
+    signal = create_superpuls(map(wf -> wf.signal, wfs))
+    RDWaveform(time, signal)
+end
+
+create_superpuls(signals::AbstractVector{<:AbstractSamples}) = sum(signals)
+
+function create_superpuls(wfs::ArrayOfRDWaveforms)
+    RDWaveform(wfs.time, create_superpuls(wfs.signal))
+end
+
+function create_superpuls(signals::ArrayOfSimilarVectors{<:RealQuantity})
+    X = flatview(signals)
+    vec(sum(X, dims = 2))
+end
