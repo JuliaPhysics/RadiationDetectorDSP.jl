@@ -21,7 +21,7 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
     wfs_x = ArrayOfRDWaveforms((
         Fill(1.5u"ns" .* (1:47), 10),
-        ArrayOfSimilarArrays([vcat(fill(0.5f0, 14 - i), zeros(Float32, 9 + i),ones(Float32, 24)) .+ noise for i in 1:10])
+        convert(ArrayOfSimilarArrays, [vcat(fill(0.5f0, 14 - i), zeros(Float32, 9 + i),ones(Float32, 24)) .+ noise for i in 1:10])
     ))
     wf_x = wfs_x[1]
     x = wf_x.signal
@@ -56,7 +56,7 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
     #@test @inferred(fi(wf_x)) ≈ wf_y_ref
     @test @inferred(uflt(wf_x)) ≈ wf_y_ref
 
-    Y = nestedview(similar(flatview(X), (innersize(X, 1) - 15, size(X, 1))))
+    Y = VectorOfSimilarVectors(similar(flatview(X), (innersize(X, 1) - 15, size(X, 1))))
     fill!.(Y, NaN)
 
     @test @inferred(bc_rdfilt!(Y, fi, X)) === Y

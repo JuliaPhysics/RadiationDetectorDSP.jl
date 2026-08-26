@@ -16,7 +16,7 @@ function gen_test_waveforms()
 
     ArrayOfRDWaveforms((
         Fill(1.5u"ns" .* (-3:43), 10),
-        ArrayOfSimilarArrays([vcat(fill(0.5f0, 14 - i), zeros(Float32, 9 + i),ones(Float32, 24)) .+ noise for i in 1:10])
+        convert(ArrayOfSimilarArrays, [vcat(fill(0.5f0, 14 - i), zeros(Float32, 9 + i),ones(Float32, 24)) .+ noise for i in 1:10])
     ))
 end
 

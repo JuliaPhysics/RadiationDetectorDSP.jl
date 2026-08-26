@@ -33,7 +33,7 @@ end
     _inneraxes(A)[dim]
 
 @inline function _inneraxes(A::ArrayOfSimilarArrays{T,M,N}) where {T,M,N}
-    ArraysOfArrays.front_tuple(axes(A.data), Val{M}())
+    ntuple(i -> axes(A.data, i), Val(M))
 end
 
 @inline function _inneraxes(A::FillArrays.Fill{<:AbstractArray})
