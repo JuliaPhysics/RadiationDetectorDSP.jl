@@ -21,6 +21,8 @@ Manifest-v*.toml
 # Julia local package preferences
 LocalPreferences.toml
 
+# Julia ConkaPkg environments
+.CondaPkg
 
 ### Visual Studio Code ###
 
