@@ -49,8 +49,7 @@ function _lsqfitatpos_impl(A_slqfit::AbstractMatrix{<:Real}, X::AbstractRange{<:
 
     range_r = (from+1):(until+1)
     shifted_x_r = xi - first(range_r)
-    #weight_r = _smoothstep(mod(shifted_x_r, 1))
-    weight_r = mod(shifted_x_r, 1)
+    weight_r = _smoothstep(mod(shifted_x_r, 1))
     y_r = _lsqfitatpos_single_impl(A_slqfit, view(Y, range_r), shifted_x_r)
 
     range_l = (from):(until)
