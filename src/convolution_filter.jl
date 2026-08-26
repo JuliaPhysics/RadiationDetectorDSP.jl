@@ -112,10 +112,11 @@ _filterlen(fi::DirectConvFilterInstance) = size(fi.reverse_h, 1)
     @assert lastindex(y) == lastindex(x) - (lastindex(rh) - firstindex(rh))
 
     @inbounds for i in eachindex(y)
-        y[i] = 0
+        acc = zero(T)
         @simd for j in eachindex(rh)
-            y[i] = fma(rh[j], x[i+j-1], y[i])
+            acc = fma(rh[j], x[i+j-1], acc)
         end
+        y[i] = acc
     end
     return y
 end
