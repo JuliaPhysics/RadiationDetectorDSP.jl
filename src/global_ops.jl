@@ -92,3 +92,32 @@ function bc_reverse_waveform(inputs::ArrayOfSimilarVectors{<:RealQuantity})
     Y = reverse(X, dims = 1)
     ArrayOfSimilarVectors(Y)
 end
+
+"""
+    sum_waveforms(wfs::AbstractVector{<:RDWaveform})
+
+Creates a sample-wise sum of an array of waveforms.
+All waveforms are assumed to share the same time axis.
+"""
+function sum_waveforms end
+export sum_waveforms
+
+function sum_waveforms(wfs::AbstractVector{<:RDWaveform})
+    time = first(wfs).time
+    @assert all(wf -> wf.time == time, wfs) "all waveforms must share the same time axis"
+    signal = sum_waveforms(map(wf -> wf.signal, wfs))
+    RDWaveform(time, signal)
+end
+
+sum_waveforms(signals::AbstractVector{<:AbstractSamples}) = sum(signals)
+
+function sum_waveforms(wfs::ArrayOfRDWaveforms)
+    time = first(wfs.time)
+    @assert all(==(time), wfs.time) "all waveforms must share the same time axis"
+    RDWaveform(time, sum_waveforms(wfs.signal))
+end
+
+function sum_waveforms(signals::ArrayOfSimilarVectors{<:RealQuantity})
+    X = flatview(signals)
+    vec(sum(X, dims = 2))
+end
