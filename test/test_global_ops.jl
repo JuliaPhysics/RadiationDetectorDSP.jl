@@ -14,4 +14,14 @@ include("test_utils.jl")
         @test broadcast(shift_waveform, wfs_x, A).signal isa ArrayOfSimilarVectors 
         # ToDo: Add more detailed tests for shift_waveform
     end
+
+    @testset "sum_waveforms" begin
+        wfs_x = gen_test_waveforms()
+        @test @inferred(sum_waveforms(wfs_x)) ≈ RDWaveform(wfs_x[1].time, sum(map(wf -> wf.signal, wfs_x)))
+        @test sum_waveforms(wfs_x).time == wfs_x[1].time
+        @test sum_waveforms(wfs_x).signal isa AbstractVector
+        @test sum_waveforms([wfs_x[1]]) ≈ wfs_x[1]
+        @test sum_waveforms(wfs_x).signal ≈ sum(broadcast(wf -> wf.signal, wfs_x))
+        @test_throws BoundsError sum_waveforms(similar(wfs_x, 0))
+    end
 end
