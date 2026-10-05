@@ -4,7 +4,7 @@ using RadiationDetectorDSP
 using Test
 
 using InverseFunctions
-using RadiationDetectorSignals, Unitful
+using RadiationDetectorSignals, Unitful, ArraysOfArrays
 using Statistics
 
 
@@ -101,67 +101,34 @@ using Statistics
     end
 
     @testset "RC_CR2Filter" begin
-        # Create a test waveform with a pulse (similar to current signal)
-        pulse_signal = vcat(fill(0.0, 10), fill(1.0, 30), fill(0.0, 200))
-        pulse_wf = RDWaveform(15u"ns"*(0:239), pulse_signal)
-        
-        # Test with different time constants
-        tau_values = [15u"ns" * 5, 15u"ns" * 10, 15u"ns" * 20]
-        
-        for tau in tau_values
-            plot(pulse_wf)
-            flt = RC_CR2Filter(tau = tau)
-            output = flt(pulse_wf)
-            plot!(output)
-            
-            # Verify output type
-            @test output isa RDWaveform
-            @test length(output.signal) == length(pulse_wf.signal)
-            
-            # First three samples should be preserved
-            @test isapprox(output.signal[1], pulse_wf.signal[1]; rtol=1e-6)
-            @test isapprox(output.signal[2], pulse_wf.signal[2]; rtol=1e-6)
-            @test isapprox(output.signal[3], pulse_wf.signal[3]; rtol=1e-6)
-            
-            # No NaNs should be in output for valid input
-            @test !any(isnan, output.signal)
+        flt = RC_CR2Filter(tau = 15u"ns" * 10)
+        output = flt(step_wf)
+        a = exp(-1 / 10)
+        n = 0:29
+        # Exact zero-state step response of (1 - z⁻¹)² / (1 - a*z⁻¹)³.
+        response = @. (n + 1) * (n + 2) / 2 * a^n - n * (n + 1) / 2 * a^(n - 1)
+        @test output.signal ≈ vcat(zeros(10), response)
+        @test output.time == step_wf.time
+        @test inverse(flt) isa InvRC_CR2Filter
+        @test inverse(inverse(flt)) == flt
+        InverseFunctions.test_inverse(flt, step_wf; compare = cmpwf)
+
+        # Filtering must start at the first sample, even for short traces.
+        short_wf = RDWaveform(15u"ns" * (0:2), [1.0, 0.0, 0.0])
+        @test flt(short_wf).signal ≈ [1, 3a - 2, 6a^2 - 6a + 1]
+        InverseFunctions.test_inverse(flt, short_wf; compare = cmpwf)
+        inplace = copy(step_signal)
+        @test rdfilt!(inplace, fltinstance(flt, smplinfo(step_wf)), inplace) ≈ output.signal
+
+        for T in (Float32, Int16)
+            wf = RDWaveform(step_wf.time, T.(step_signal))
+            @test flt(wf).signal ≈ output.signal
+            @test eltype(flt(wf).signal) == Float32
+            signals = ArrayOfSimilarArrays([wf.signal, wf.signal])
+            @test RC_CR2Filter(tau = 10).(signals) ≈ ArrayOfSimilarArrays([flt(wf).signal, flt(wf).signal])
         end
-        
-        # Test with step signal to observe shaping behavior
-        step_signal = vcat(fill(0.0, 10), fill(1.0, 40))
-        step_wf = RDWaveform(15u"ns"*(0:49), step_signal)
-        
-        flt = RC_CR2Filter(tau = 15u"ns" * 10)
-        output_step = flt(step_wf)
-        
-        @test output_step isa RDWaveform
-        @test !any(isnan, output_step.signal)
-        @test isapprox(output_step.signal[1], step_wf.signal[1]; rtol=1e-6)
-        
-        # Test with very short waveform (should handle gracefully)
-        short_wf = RDWaveform(15u"ns"*(0:2), [0.0, 1.0, 0.5])
-        flt_short = RC_CR2Filter(tau = 15u"ns" * 5)
-        output_short = flt_short(short_wf)
-        
-        # Short waveforms (≤3 samples) should still work, returning NaN
-        @test output_short isa RDWaveform
-        @test length(output_short.signal) == 3
-        
-        # Test broadcasting with RDSignal/RDWaveform
-        flt = RC_CR2Filter(tau = 15u"ns" * 10)
-        
-        # Verify that the filter responds to pulse (shows differentiation-like behavior)
-        pulse_start = findfirst(x -> x != 0.0, pulse_wf.signal)
-        pulse_end = findlast(x -> x != 0.0, pulse_wf.signal)
-        
-        # Get the filtered output around pulse region
-        output_pulse = flt(pulse_wf)
-        
-        # The filter should show rise-up at pulse start and fall at pulse end
-        # (characteristic of RC-CR^2 filter)
-        if !isnothing(pulse_start) && !isnothing(pulse_end)
-            @test maximum(abs.(output_pulse.signal[pulse_start:pulse_start+10])) > 0
-            @test maximum(abs.(output_pulse.signal[pulse_end-10:pulse_end])) > 0
+        for tau in (0, -1, Inf, NaN)
+            @test_throws ArgumentError RC_CR2Filter(tau = tau)(step_signal)
         end
     end
 end

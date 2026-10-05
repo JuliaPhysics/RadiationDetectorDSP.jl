@@ -517,11 +517,15 @@ end
 
 
 """
-    struct RC_CR2Filter{T<:RealQuantity} <: AbstractRadIIRFilter
+    struct RC_CR2Filter <: AbstractRadIIRFilter
 
-A RC-CR² shaping filter useful for determining pileup and trigger times.
-The filter is computed using a matched z-transform to keep the poles/zeroes 
-of the analog transfer function in the same location.
+An RC-CR² shaping filter for pileup detection and trigger timing, with a
+common RC and CR time constant `tau`.
+
+Uses `H(z) = (1 - z⁻¹)² / (1 - a*z⁻¹)³`, with `a = exp(-Δt / tau)`.
+The gain is not normalized. Subtract the baseline before filtering.
+The inverse is [`InvRC_CR2Filter`](@ref), which is sensitive to baseline
+errors and low-frequency noise added after shaping.
 
 Constructors:
 
@@ -530,124 +534,76 @@ Constructors:
 Fields:
 
 $(TYPEDFIELDS)
-
-YAML Configuration Example
---------------------------
-
-.. code-block:: yaml
-
-    wf_RC_CR2:
-      function: rc_cr2
-      module: RadiationDetectorDSP
-      args:
-        - wf_bl
-        - "300*ns"
-        - wf_RC_CR2
 """
 Base.@kwdef struct RC_CR2Filter{T<:RealQuantity} <: AbstractRadIIRFilter
-    "RC-CR² time constant"
+    "RC-CR² time constant (positive and finite)"
     tau::T
 end
 
 export RC_CR2Filter
 
+InverseFunctions.inverse(flt::RC_CR2Filter) = InvRC_CR2Filter(flt.tau)
+
+
+"""
+    struct InvRC_CR2Filter <: AbstractRadIIRFilter
+
+Inverse of [`RC_CR2Filter`](@ref).
+
+Useful for noiseless round trips. Its double pole at `z = 1` causes baseline
+errors and low-frequency noise added after shaping to accumulate.
+
+Constructors:
+
+* ```$(FUNCTIONNAME)(fields...)```
+
+Fields:
+
+$(TYPEDFIELDS)
+"""
+Base.@kwdef struct InvRC_CR2Filter{T<:RealQuantity} <: AbstractRadIIRFilter
+    "RC-CR² time constant (positive and finite)"
+    tau::T
+end
+
+export InvRC_CR2Filter
+
+InverseFunctions.inverse(flt::InvRC_CR2Filter) = RC_CR2Filter(flt.tau)
+
 
 struct RC_CR2FilterInstance{T} <: AbstractRadSigFilterInstance{LinearFiltering}
-    a::T
-    denom_2::T
-    denom_3::T
-    denom_4::T
-    n::Int
+    rc::FirstOrderIIRInstance{T}
+    cr::FirstOrderIIRInstance{T}
 end
 
-
-function fltinstance(flt::RC_CR2Filter, fi::SamplingInfo)
-    tau_norm = float(flt.tau / step(fi.axis))
-    T = typeof(tau_norm)  # Get the numeric type (Float32 or Float64)
-    a = exp(-1 / tau_norm)
-    
-    denom_2 = -3 * a
-    denom_3 = 3 * a^2
-    denom_4 = -(a^3)
-    
-    RC_CR2FilterInstance{T}(a, denom_2, denom_3, denom_4, _smpllen(fi))
+function fltinstance(flt::Union{RC_CR2Filter,InvRC_CR2Filter}, si::SamplingInfo)
+    tau = float(ustrip(NoUnits, flt.tau / step(si.axis)))
+    @argcheck isfinite(tau) && tau > 0
+    a = exp(-inv(tau))
+    U = typeof(a)
+    rc = FirstOrderIIR((one(U), zero(U)), (-a,))
+    cr = FirstOrderIIR((one(U), -one(U)), (-a,))
+    if flt isa InvRC_CR2Filter
+        rc, cr = inverse(rc), inverse(cr)
+    end
+    RC_CR2FilterInstance(fltinstance(rc, si), fltinstance(cr, si))
 end
 
-
-
-
-Adapt.adapt_structure(to, flt::RC_CR2Filter) = flt
-
-
-@inline function rdfilt!(Y::AbstractVector{T}, fi::RC_CR2FilterInstance{T}, X::AbstractVector{T}) where {T<:Real}
-    # Check input validity
-    if any(isnan, X) || length(X) <= 3
-        fill!(Y, T(NaN))
-        return Y
-    end
-    
-    # Initialize first three samples
-    Y[1] = X[1]
-    Y[2] = X[2]
-    Y[3] = X[3]
-    
-    # Use higher precision buffer to avoid float truncation
-    w_tmp = zeros(Float64, 4)
-    w_tmp[1] = Float64(X[1])
-    w_tmp[2] = Float64(X[2])
-    w_tmp[3] = Float64(X[3])
-    
-    a = Float64(fi.a)
-    denom_1 = 1.0
-    denom_2 = Float64(fi.denom_2)
-    denom_3 = Float64(fi.denom_3)
-    denom_4 = Float64(fi.denom_4)
-    
-    num_1 = 1.0
-    num_2 = -2.0
-    num_3 = 1.0
-    
-    @inbounds for i in 4:length(X)
-        w_tmp[4] = (
-            -denom_2 * w_tmp[3]
-            - denom_3 * w_tmp[2]
-            - denom_4 * w_tmp[1]
-            + num_1 * Float64(X[i])
-            + num_2 * Float64(X[i - 1])
-            + num_3 * Float64(X[i - 2])
-        ) / denom_1
-        
-        Y[i] = T(w_tmp[4])
-        
-        # Shuffle the buffers
-        w_tmp[1] = w_tmp[2]
-        w_tmp[2] = w_tmp[3]
-        w_tmp[3] = w_tmp[4]
-    end
-    
-    # Check output for NaNs
-    if any(isnan, Y)
-        fill!(Y, T(NaN))
-    end
-    
-    Y
+@inline function rdfilt!(Y::AbstractVector{T}, fi::RC_CR2FilterInstance{T}, X::AbstractVector{U}) where {T<:Real,U<:Real}
+    # Cascading first-order sections avoids cancellation in a third-order recurrence.
+    rdfilt!(Y, fi.rc, X)
+    rdfilt!(Y, fi.cr, Y)
+    rdfilt!(Y, fi.cr, Y)
 end
 
-
-# RC_CR2FilterInstance methods
 adapt_memlayout(::RC_CR2FilterInstance, ::GPU, A::AbstractArray{<:Number}) = _row_major(A)
 
-function bc_rdfilt!(
-    outputs::ArrayOfSimilarVectors{<:RealQuantity},
-    fi::RC_CR2FilterInstance,
-    inputs::ArrayOfSimilarVectors{<:RealQuantity}
-)
+function bc_rdfilt!(outputs::ArrayOfSimilarVectors{<:RealQuantity}, fi::RC_CR2FilterInstance, inputs::ArrayOfSimilarVectors{<:RealQuantity})
     _ka_bc_rdfilt!(outputs, fi, inputs)
 end
 
 flt_output_smpltype(fi::RC_CR2FilterInstance) = flt_input_smpltype(fi)
 flt_input_smpltype(fi::RC_CR2FilterInstance{T}) where T = T
-
 flt_output_length(fi::RC_CR2FilterInstance) = flt_input_length(fi)
-flt_input_length(fi::RC_CR2FilterInstance) = fi.n
+flt_input_length(fi::RC_CR2FilterInstance) = flt_input_length(fi.rc)
 flt_output_time_axis(fi::RC_CR2FilterInstance, time::AbstractVector{<:RealQuantity}) = time
