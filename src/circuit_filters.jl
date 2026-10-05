@@ -514,3 +514,140 @@ function BiquadFilter(flt::InvSecondOrderCRFilter)
     transfer_num_2 = a * b
     BiquadFilter((1.0, transfer_num_1, transfer_num_2), (transfer_denom_1, transfer_denom_2))
 end
+
+
+"""
+    struct RC_CR2Filter{T<:RealQuantity} <: AbstractRadIIRFilter
+
+A RC-CR² shaping filter useful for determining pileup and trigger times.
+The filter is computed using a matched z-transform to keep the poles/zeroes 
+of the analog transfer function in the same location.
+
+Constructors:
+
+* ```$(FUNCTIONNAME)(fields...)```
+
+Fields:
+
+$(TYPEDFIELDS)
+
+YAML Configuration Example
+--------------------------
+
+.. code-block:: yaml
+
+    wf_RC_CR2:
+      function: rc_cr2
+      module: RadiationDetectorDSP
+      args:
+        - wf_bl
+        - "300*ns"
+        - wf_RC_CR2
+"""
+Base.@kwdef struct RC_CR2Filter{T<:RealQuantity} <: AbstractRadIIRFilter
+    "RC-CR² time constant"
+    tau::T
+end
+
+export RC_CR2Filter
+
+
+struct RC_CR2FilterInstance{T} <: AbstractRadSigFilterInstance{LinearFiltering}
+    a::T
+    denom_2::T
+    denom_3::T
+    denom_4::T
+    n::Int
+end
+
+
+function fltinstance(flt::RC_CR2Filter, fi::SamplingInfo)
+    tau_norm = float(flt.tau / step(fi.axis))
+    T = typeof(tau_norm)  # Get the numeric type (Float32 or Float64)
+    a = exp(-1 / tau_norm)
+    
+    denom_2 = -3 * a
+    denom_3 = 3 * a^2
+    denom_4 = -(a^3)
+    
+    RC_CR2FilterInstance{T}(a, denom_2, denom_3, denom_4, _smpllen(fi))
+end
+
+
+
+
+Adapt.adapt_structure(to, flt::RC_CR2Filter) = flt
+
+
+@inline function rdfilt!(Y::AbstractVector{T}, fi::RC_CR2FilterInstance{T}, X::AbstractVector{T}) where {T<:Real}
+    # Check input validity
+    if any(isnan, X) || length(X) <= 3
+        fill!(Y, T(NaN))
+        return Y
+    end
+    
+    # Initialize first three samples
+    Y[1] = X[1]
+    Y[2] = X[2]
+    Y[3] = X[3]
+    
+    # Use higher precision buffer to avoid float truncation
+    w_tmp = zeros(Float64, 4)
+    w_tmp[1] = Float64(X[1])
+    w_tmp[2] = Float64(X[2])
+    w_tmp[3] = Float64(X[3])
+    
+    a = Float64(fi.a)
+    denom_1 = 1.0
+    denom_2 = Float64(fi.denom_2)
+    denom_3 = Float64(fi.denom_3)
+    denom_4 = Float64(fi.denom_4)
+    
+    num_1 = 1.0
+    num_2 = -2.0
+    num_3 = 1.0
+    
+    @inbounds for i in 4:length(X)
+        w_tmp[4] = (
+            -denom_2 * w_tmp[3]
+            - denom_3 * w_tmp[2]
+            - denom_4 * w_tmp[1]
+            + num_1 * Float64(X[i])
+            + num_2 * Float64(X[i - 1])
+            + num_3 * Float64(X[i - 2])
+        ) / denom_1
+        
+        Y[i] = T(w_tmp[4])
+        
+        # Shuffle the buffers
+        w_tmp[1] = w_tmp[2]
+        w_tmp[2] = w_tmp[3]
+        w_tmp[3] = w_tmp[4]
+    end
+    
+    # Check output for NaNs
+    if any(isnan, Y)
+        fill!(Y, T(NaN))
+    end
+    
+    Y
+end
+
+
+# RC_CR2FilterInstance methods
+adapt_memlayout(::RC_CR2FilterInstance, ::GPU, A::AbstractArray{<:Number}) = _row_major(A)
+
+function bc_rdfilt!(
+    outputs::ArrayOfSimilarVectors{<:RealQuantity},
+    fi::RC_CR2FilterInstance,
+    inputs::ArrayOfSimilarVectors{<:RealQuantity}
+)
+    _ka_bc_rdfilt!(outputs, fi, inputs)
+end
+
+flt_output_smpltype(fi::RC_CR2FilterInstance) = flt_input_smpltype(fi)
+flt_input_smpltype(fi::RC_CR2FilterInstance{T}) where T = T
+
+flt_output_length(fi::RC_CR2FilterInstance) = flt_input_length(fi)
+flt_input_length(fi::RC_CR2FilterInstance) = fi.n
+flt_output_time_axis(fi::RC_CR2FilterInstance, time::AbstractVector{<:RealQuantity}) = time
