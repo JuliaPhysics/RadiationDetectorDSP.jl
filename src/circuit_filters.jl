@@ -514,3 +514,96 @@ function BiquadFilter(flt::InvSecondOrderCRFilter)
     transfer_num_2 = a * b
     BiquadFilter((1.0, transfer_num_1, transfer_num_2), (transfer_denom_1, transfer_denom_2))
 end
+
+
+"""
+    struct RC_CR2Filter <: AbstractRadIIRFilter
+
+An RC-CR² shaping filter for pileup detection and trigger timing, with a
+common RC and CR time constant `tau`.
+
+Uses `H(z) = (1 - z⁻¹)² / (1 - a*z⁻¹)³`, with `a = exp(-Δt / tau)`.
+The gain is not normalized. Subtract the baseline before filtering.
+The inverse is [`InvRC_CR2Filter`](@ref), which is sensitive to baseline
+errors and low-frequency noise added after shaping.
+
+Constructors:
+
+* ```$(FUNCTIONNAME)(fields...)```
+
+Fields:
+
+$(TYPEDFIELDS)
+"""
+Base.@kwdef struct RC_CR2Filter{T<:RealQuantity} <: AbstractRadIIRFilter
+    "RC-CR² time constant (positive and finite)"
+    tau::T
+end
+
+export RC_CR2Filter
+
+InverseFunctions.inverse(flt::RC_CR2Filter) = InvRC_CR2Filter(flt.tau)
+
+
+"""
+    struct InvRC_CR2Filter <: AbstractRadIIRFilter
+
+Inverse of [`RC_CR2Filter`](@ref).
+
+Useful for noiseless round trips. Its double pole at `z = 1` causes baseline
+errors and low-frequency noise added after shaping to accumulate.
+
+Constructors:
+
+* ```$(FUNCTIONNAME)(fields...)```
+
+Fields:
+
+$(TYPEDFIELDS)
+"""
+Base.@kwdef struct InvRC_CR2Filter{T<:RealQuantity} <: AbstractRadIIRFilter
+    "RC-CR² time constant (positive and finite)"
+    tau::T
+end
+
+export InvRC_CR2Filter
+
+InverseFunctions.inverse(flt::InvRC_CR2Filter) = RC_CR2Filter(flt.tau)
+
+
+struct RC_CR2FilterInstance{T} <: AbstractRadSigFilterInstance{LinearFiltering}
+    rc::FirstOrderIIRInstance{T}
+    cr::FirstOrderIIRInstance{T}
+end
+
+function fltinstance(flt::Union{RC_CR2Filter,InvRC_CR2Filter}, si::SamplingInfo)
+    tau = float(ustrip(NoUnits, flt.tau / step(si.axis)))
+    @argcheck isfinite(tau) && tau > 0
+    a = exp(-inv(tau))
+    U = typeof(a)
+    rc = FirstOrderIIR((one(U), zero(U)), (-a,))
+    cr = FirstOrderIIR((one(U), -one(U)), (-a,))
+    if flt isa InvRC_CR2Filter
+        rc, cr = inverse(rc), inverse(cr)
+    end
+    RC_CR2FilterInstance(fltinstance(rc, si), fltinstance(cr, si))
+end
+
+@inline function rdfilt!(Y::AbstractVector{T}, fi::RC_CR2FilterInstance{T}, X::AbstractVector{U}) where {T<:Real,U<:Real}
+    # Cascading first-order sections avoids cancellation in a third-order recurrence.
+    rdfilt!(Y, fi.rc, X)
+    rdfilt!(Y, fi.cr, Y)
+    rdfilt!(Y, fi.cr, Y)
+end
+
+adapt_memlayout(::RC_CR2FilterInstance, ::GPU, A::AbstractArray{<:Number}) = _row_major(A)
+
+function bc_rdfilt!(outputs::ArrayOfSimilarVectors{<:RealQuantity}, fi::RC_CR2FilterInstance, inputs::ArrayOfSimilarVectors{<:RealQuantity})
+    _ka_bc_rdfilt!(outputs, fi, inputs)
+end
+
+flt_output_smpltype(fi::RC_CR2FilterInstance) = flt_input_smpltype(fi)
+flt_input_smpltype(fi::RC_CR2FilterInstance{T}) where T = T
+flt_output_length(fi::RC_CR2FilterInstance) = flt_input_length(fi)
+flt_input_length(fi::RC_CR2FilterInstance) = flt_input_length(fi.rc)
+flt_output_time_axis(fi::RC_CR2FilterInstance, time::AbstractVector{<:RealQuantity}) = time

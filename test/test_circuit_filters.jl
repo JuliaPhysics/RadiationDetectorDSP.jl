@@ -4,7 +4,7 @@ using RadiationDetectorDSP
 using Test
 
 using InverseFunctions
-using RadiationDetectorSignals, Unitful
+using RadiationDetectorSignals, Unitful, ArraysOfArrays
 using Statistics
 
 
@@ -98,5 +98,37 @@ using Statistics
         @test inverse(flt) isa InvSecondOrderCRFilter
         @test inverse(inverse(flt)) == flt
         InverseFunctions.test_inverse(flt, x; compare = cmpwf)
+    end
+
+    @testset "RC_CR2Filter" begin
+        flt = RC_CR2Filter(tau = 15u"ns" * 10)
+        output = flt(step_wf)
+        a = exp(-1 / 10)
+        n = 0:29
+        # Exact zero-state step response of (1 - z⁻¹)² / (1 - a*z⁻¹)³.
+        response = @. (n + 1) * (n + 2) / 2 * a^n - n * (n + 1) / 2 * a^(n - 1)
+        @test output.signal ≈ vcat(zeros(10), response)
+        @test output.time == step_wf.time
+        @test inverse(flt) isa InvRC_CR2Filter
+        @test inverse(inverse(flt)) == flt
+        InverseFunctions.test_inverse(flt, step_wf; compare = cmpwf)
+
+        # Filtering must start at the first sample, even for short traces.
+        short_wf = RDWaveform(15u"ns" * (0:2), [1.0, 0.0, 0.0])
+        @test flt(short_wf).signal ≈ [1, 3a - 2, 6a^2 - 6a + 1]
+        InverseFunctions.test_inverse(flt, short_wf; compare = cmpwf)
+        inplace = copy(step_signal)
+        @test rdfilt!(inplace, fltinstance(flt, smplinfo(step_wf)), inplace) ≈ output.signal
+
+        for T in (Float32, Int16)
+            wf = RDWaveform(step_wf.time, T.(step_signal))
+            @test flt(wf).signal ≈ output.signal
+            @test eltype(flt(wf).signal) == Float32
+            signals = ArrayOfSimilarArrays([wf.signal, wf.signal])
+            @test RC_CR2Filter(tau = 10).(signals) ≈ ArrayOfSimilarArrays([flt(wf).signal, flt(wf).signal])
+        end
+        for tau in (0, -1, Inf, NaN)
+            @test_throws ArgumentError RC_CR2Filter(tau = tau)(step_signal)
+        end
     end
 end
