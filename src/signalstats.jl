@@ -7,7 +7,6 @@
 
 Get statistics on `signal` in the interval (`start`,`stop`).
 """
-
 function signalstats end
 export signalstats
 
