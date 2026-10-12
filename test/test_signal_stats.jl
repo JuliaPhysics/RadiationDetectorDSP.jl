@@ -1,7 +1,6 @@
 # This file is a part of RadiationDetectorDSP.jl, licensed under the MIT License (MIT).
 using Test
 
-include("test_utils.jl")
 
 @testset "signalstats" begin
     # Flat signal: mean=5, sigma=0, slope=0

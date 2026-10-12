@@ -1,6 +1,5 @@
 # This file is a part of RadiationDetectorDSP.jl, licensed under the MIT License (MIT).
 
-include("test_utils.jl")
 
 
 @testset "global_ops" begin

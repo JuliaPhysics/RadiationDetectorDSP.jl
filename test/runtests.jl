@@ -4,6 +4,8 @@ import Test
 import RadiationDetectorDSP
 import Documenter
 
+include("test_utils.jl")
+
 Test.@testset "Package RadiationDetectorDSP" begin
     include("test_array_utils.jl")
     include("legacy/test_filters.jl")
