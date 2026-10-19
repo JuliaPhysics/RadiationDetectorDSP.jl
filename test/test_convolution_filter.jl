@@ -95,3 +95,50 @@ import DSP
         @test typeof(broadcast(flt, wfs_x)) == typeof(wfs_y_ref)
     end
 end
+
+
+@testset "FFTConvolution against direct convolution" begin
+    # valid part of the linear convolution, computed in the same element type
+    linconv(h, x) = [sum(h[j] * x[i - j + 1] for j in eachindex(h)) for i in length(h):length(x)]
+    # rounding errors scale with |h| |x| (bound of each output sample), not with the output itself,
+    # which can be close to zero
+    close(a, b, h, x, rtol) = maximum(abs, a .- b) <= rtol * sqrt(sum(abs2, h) * sum(abs2, x))
+    allclose(A, B, h, X, rtol) = all(close(A[k], B[k], h, X[k], rtol) for k in eachindex(A, B, X))
+
+    for T in (Float32, Float64), (n_input, n_filter) in ((17, 1), (17, 5), (17, 17), (64, 20), (781, 296)), n_signals in (1, 3, 600)
+        h = randn(T, n_filter)
+        X = ArrayOfSimilarArrays{T,1,1}(randn(T, n_input, n_signals))
+        fi = fltinstance(ConvolutionFilter(FFTConvolution(), h), smplinfo(X[1]))
+        rtol = T == Float32 ? 1e-5 : 1e-13
+
+        # FFT length: at least the input length, only prime factors 2, 3 and 5
+        @test fi.n_fft >= n_input && foldl((n, p) -> (while n % p == 0; n ÷= p; end; n), (2, 3, 5); init = fi.n_fft) == 1
+        @test RadiationDetectorDSP.flt_output_length(fi) == n_input - n_filter + 1
+        Y_ref = [linconv(h, x) for x in X]
+        Y = @inferred(bc_rdfilt(fi, X))
+        @test eltype(flatview(Y)) == T
+        @test allclose(Y, Y_ref, h, X, rtol)
+        @test allclose(rdfilt.(Ref(fi), X), Y_ref, h, X, rtol)
+        Y_direct = bc_rdfilt(fltinstance(ConvolutionFilter(DirectConvolution(), h), smplinfo(X[1])), X)
+        @test allclose(Y, Y_direct, h, X, rtol)
+
+        Y_pre = ArrayOfSimilarArrays{T,1,1}(fill(T(NaN), n_input - n_filter + 1, n_signals))
+        @test bc_rdfilt!(Y_pre, fi, X) === Y_pre
+        @test flatview(Y_pre) == flatview(Y)
+    end
+
+    # signals arranged in a matrix
+    h = randn(7)
+    X2 = ArrayOfSimilarArrays{Float64,1,2}(randn(40, 3, 4))
+    fi = fltinstance(ConvolutionFilter(FFTConvolution(), h), smplinfo(X2[1]))
+    Y2 = bc_rdfilt(fi, X2)
+    @test size(Y2) == (3, 4)
+    @test allclose(Y2, map(x -> linconv(h, x), X2), h, X2, 1e-13)
+
+    # input length has to match the filter instance
+    x = randn(50)
+    fi = fltinstance(ConvolutionFilter(FFTConvolution(), randn(5)), smplinfo(x))
+    @test_throws ArgumentError rdfilt(fi, randn(51))
+    @test_throws ArgumentError bc_rdfilt(fi, ArrayOfSimilarArrays{Float64,1,1}(randn(51, 2)))
+    @test_throws ArgumentError fltinstance(ConvolutionFilter(FFTConvolution(), randn(51)), smplinfo(x))
+end
