@@ -26,7 +26,8 @@ function _signalstats_impl(X::AbstractArray{<:RealQuantity}, Y::AbstractArray{<:
     @assert firstindex(X) <= first(idxs) <= last(idxs) <= lastindex(X)
     @assert firstindex(Y) <= first(idxs) <= last(idxs) <= lastindex(Y)
 
-    zx = zero(eltype(X))
+    # x is accumulated with at least the floating-point precision of y
+    zx = zero(eltype(X)) * one(float(eltype(Y)))
     zy = zero(eltype(Y))
 
     sum_X::float(typeof(zx)) = zx
@@ -35,8 +36,12 @@ function _signalstats_impl(X::AbstractArray{<:RealQuantity}, Y::AbstractArray{<:
     sum_Y_sqr::float(typeof(zy * zy)) = zy * zy
     sum_XY::float(typeof(zx * zy)) = zx * zy
 
-    @inbounds @fastmath @simd for i in idxs
-        x, y = X[i], Y[i]
+    # Sums are taken relative to the first point of the window, so the variances
+    # do not suffer from cancellation when the mean is large compared to the spread.
+    # No `@fastmath` here: reassociation could undo the shift.
+    x0, y0 = convert(typeof(zx), X[first(idxs)]), Y[first(idxs)]
+    @inbounds @simd for i in idxs
+        x, y = convert(typeof(zx), X[i]) - x0, Y[i] - y0
         sum_X = x + sum_X
         sum_X_sqr = fma(x, x, sum_X_sqr)
         sum_Y = y + sum_Y
@@ -60,7 +65,7 @@ function _signalstats_impl(X::AbstractArray{<:RealQuantity}, Y::AbstractArray{<:
     # corr_XY = cov_XY / sqrt(var_X * var_Y)
 
     slope = cov_XY / var_X
-    offset = mean_Y - slope * mean_X
+    offset = (mean_Y + y0) - slope * (mean_X + x0)
     # slope_uncert = sqrt( (var_X*var_Y - cov_XY*cov_XY) / (n - 2) ) / var_X
     # offset_uncert = slope_uncert * sqrt(sum_X_sqr * inv_n)
 
@@ -68,7 +73,7 @@ function _signalstats_impl(X::AbstractArray{<:RealQuantity}, Y::AbstractArray{<:
     sigma_slope = sqrt(max(var_slope, zero(var_slope)))
 
     (
-        mean = mean_Y,
+        mean = mean_Y + y0,
         sigma = sqrt(var_Y),
         slope = slope,
         offset = offset,
