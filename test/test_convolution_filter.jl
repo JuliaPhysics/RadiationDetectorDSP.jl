@@ -133,7 +133,7 @@ end
     fi = fltinstance(ConvolutionFilter(FFTConvolution(), h), smplinfo(X2[1]))
     Y2 = bc_rdfilt(fi, X2)
     @test size(Y2) == (3, 4)
-    @test allclose(Y2, map(x -> linconv(h, x), X2), h, X2, 1e-13)
+    @test allclose(Y2, [linconv(h, x) for x in X2], h, X2, 1e-13)
 
     # input length has to match the filter instance
     x = randn(50)
