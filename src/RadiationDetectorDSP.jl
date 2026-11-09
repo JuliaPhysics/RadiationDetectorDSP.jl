@@ -35,6 +35,8 @@ import SIMD
 
 using HeterogeneousComputing: AbstractComputeUnit, CPUnit, get_compute_unit
 
+using ReactantCore: @trace
+
 using Unitful: RealOrRealQuantity as RealQuantity
 
 
@@ -63,6 +65,7 @@ include("sg_filter.jl")
 include("zac_filter.jl")
 include("cusp_filter.jl")
 include("gaussian_filter.jl")
+include("rand_waveforms.jl")
 
 
 end # module
