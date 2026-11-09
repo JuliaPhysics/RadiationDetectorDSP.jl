@@ -129,9 +129,9 @@ end
 adapt_memlayout(::DirectConvFilterInstance, backend::_KA_Backend, A::AbstractArray{<:Number}) = _row_major_on_gpu(backend, A)
 
 function bc_rdfilt!(
-    outputs::ArrayOfSimilarVectors{<:RealQuantity},
+    outputs::ArrayOfSimilarVectors{<:Number},
     fi::DirectConvFilterInstance,
-    inputs::ArrayOfSimilarVectors{<:RealQuantity}
+    inputs::ArrayOfSimilarVectors{<:Number}
 )
     _ka_bc_rdfilt!(outputs, fi, inputs)
 end
@@ -175,19 +175,19 @@ end
 
 function bc_rdfilt(
     fi::FFTConvFilterInstance,
-    inputs::ArrayOfSimilarArrays{<:Real,1,N}
+    inputs::ArrayOfSimilarArrays{<:Number,1,N}
 ) where N
     T_out = flt_output_smpltype(fi)
     X = flatview(inputs)
     Y = similar(X, T_out, (flt_output_length(fi), Base.tail(size(X))...))
     _fft_conv_columns!(reshape(Y, size(Y, 1), :), fi, reshape(X, size(X, 1), :))
-    ArrayOfSimilarArrays{T_out,1,N}(Y)
+    ArrayOfSimilarArrays{eltype(Y),1,N}(Y)
 end
 
 function bc_rdfilt!(
-    outputs::ArrayOfSimilarArrays{<:Real,1},
+    outputs::ArrayOfSimilarArrays{<:Number,1},
     fi::FFTConvFilterInstance,
-    inputs::ArrayOfSimilarArrays{<:Real,1}
+    inputs::ArrayOfSimilarArrays{<:Number,1}
 )
     X, Y = flatview(inputs), flatview(outputs)
     @argcheck Base.tail(size(Y)) == Base.tail(size(X))

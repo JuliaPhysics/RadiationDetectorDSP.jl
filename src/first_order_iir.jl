@@ -106,9 +106,9 @@ end
 adapt_memlayout(::FirstOrderIIRInstance, backend::_KA_Backend, A::AbstractArray{<:Number}) = _row_major_on_gpu(backend, A)
 
 function bc_rdfilt!(
-    outputs::ArrayOfSimilarVectors{<:RealQuantity},
+    outputs::ArrayOfSimilarVectors{<:Number},
     fi::FirstOrderIIRInstance,
-    inputs::ArrayOfSimilarVectors{<:RealQuantity}
+    inputs::ArrayOfSimilarVectors{<:Number}
 )
     _ka_bc_rdfilt!(outputs, fi, inputs)
 end

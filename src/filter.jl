@@ -225,7 +225,7 @@ end
 function bc_rdfilt(
     fi::AbstractRadSigFilterInstance,
     inputs::ArrayOfSimilarArrays{T_in,M,N}
-) where {T_in<:RealQuantity,M,N}
+) where {T_in<:Number,M,N}
     T_out = flt_output_smpltype(fi)
     n_out = flt_output_length(fi)
     flat_inputs = flatview(inputs)
@@ -233,7 +233,7 @@ function bc_rdfilt(
     new_flat_inputs = adapt_memlayout(fi, backend, flat_inputs)
     flat_output = _similar_memlayout(new_flat_inputs, T_out, (n_out, size(inputs)...))
     new_inputs = ArrayOfSimilarArrays{T_in,M,N}(new_flat_inputs)
-    outputs = ArrayOfSimilarArrays{T_out,M,N}(flat_output)
+    outputs = ArrayOfSimilarArrays{eltype(flat_output),M,N}(flat_output)
     bc_rdfilt!(outputs, fi, new_inputs)
 end
 
@@ -285,9 +285,9 @@ _ka_threads(::KernelAbstractions.CPU) = (Base.Threads.nthreads(),)
 _ka_threads(::_KA_Backend) = ()
 
 function _ka_bc_rdfilt!(
-    outputs::ArrayOfSimilarVectors{<:RealQuantity},
+    outputs::ArrayOfSimilarVectors{<:Number},
     fi::AbstractRadSigFilterInstance,
-    inputs::ArrayOfSimilarVectors{<:RealQuantity}
+    inputs::ArrayOfSimilarVectors{<:Number}
 )
     @argcheck axes(inputs) == axes(outputs)
 

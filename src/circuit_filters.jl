@@ -620,7 +620,7 @@ end
 
 adapt_memlayout(::RC_CR2FilterInstance, backend::_KA_Backend, A::AbstractArray{<:Number}) = _row_major_on_gpu(backend, A)
 
-function bc_rdfilt!(outputs::ArrayOfSimilarVectors{<:RealQuantity}, fi::RC_CR2FilterInstance, inputs::ArrayOfSimilarVectors{<:RealQuantity})
+function bc_rdfilt!(outputs::ArrayOfSimilarVectors{<:Number}, fi::RC_CR2FilterInstance, inputs::ArrayOfSimilarVectors{<:Number})
     _ka_bc_rdfilt!(outputs, fi, inputs)
 end
 
