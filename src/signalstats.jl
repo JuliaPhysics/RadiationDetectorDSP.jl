@@ -26,9 +26,10 @@ function _signalstats_impl(X::AbstractArray{<:RealQuantity}, Y::AbstractArray{<:
     @assert firstindex(X) <= first(idxs) <= last(idxs) <= lastindex(X)
     @assert firstindex(Y) <= first(idxs) <= last(idxs) <= lastindex(Y)
 
-    # x is accumulated with at least the floating-point precision of y
-    zx = zero(eltype(X)) * one(float(eltype(Y)))
-    zy = zero(eltype(Y))
+    # Sums are accumulated in at least Float64 precision. In lower precision, they lose
+    # accuracy for long windows and for values far from the first one in the window.
+    zx = zero(eltype(X)) * one(Float64)
+    zy = zero(eltype(Y)) * one(Float64)
 
     sum_X::float(typeof(zx)) = zx
     sum_Y::float(typeof(zy)) = zy
@@ -38,11 +39,10 @@ function _signalstats_impl(X::AbstractArray{<:RealQuantity}, Y::AbstractArray{<:
 
     # Sums are taken relative to the first point of the window, so the variances
     # do not suffer from cancellation when the mean is large compared to the spread.
-    # No `@fastmath` here: reassociation could undo the shift. The shift is done in
-    # floating point, since integer samples could wrap around or overflow.
-    x0, y0 = convert(typeof(zx), X[first(idxs)]), float(Y[first(idxs)])
+    # No `@fastmath` here: reassociation could undo the shift.
+    x0, y0 = convert(typeof(zx), X[first(idxs)]), convert(typeof(zy), Y[first(idxs)])
     @inbounds @simd for i in idxs
-        x, y = convert(typeof(zx), X[i]) - x0, Y[i] - y0
+        x, y = convert(typeof(zx), X[i]) - x0, convert(typeof(zy), Y[i]) - y0
         sum_X = x + sum_X
         sum_X_sqr = fma(x, x, sum_X_sqr)
         sum_Y = y + sum_Y

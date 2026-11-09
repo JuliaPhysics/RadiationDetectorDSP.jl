@@ -1,5 +1,6 @@
 # This file is a part of RadiationDetectorDSP.jl, licensed under the MIT License (MIT).
 using Test
+using Statistics
 
 include("test_utils.jl")
 
@@ -37,6 +38,17 @@ include("test_utils.jl")
             @test stats_int[k] ≈ stats_float[k]
         end
     end
+
+    # Outlier as the first sample of the window
+    ys_spike = ones(Float32, 4000)
+    ys_spike[1] = 1f4
+    stats_spike = signalstats(RDWaveform(0.0:3999.0, ys_spike), 0.0, 3999.0)
+    @test stats_spike.mean ≈ mean(Float64.(ys_spike))
+    @test stats_spike.sigma ≈ std(Float64.(ys_spike), corrected = false)
+
+    # Integer time axis beyond the exact integer range of Float32
+    stats_int_axis = signalstats(RDWaveform(2^25:(2^25 + 9), Float32.(2 .* (0:9) .+ 1)), 2^25, 2^25 + 9)
+    @test stats_int_axis.slope ≈ 2
 
     # Large mean compared to the spread, on a Float32 time axis far from zero
     ts = range(60000f0u"ns", step = 16f0u"ns", length = 4000)
