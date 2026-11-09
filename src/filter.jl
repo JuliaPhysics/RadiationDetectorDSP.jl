@@ -194,7 +194,7 @@ end
 Adapts the memory layout of `A` in a suitable fashion for `fi` on computing
 device `backend`.
 
-Returns a row-major version of `A` on all backends by default, filter instance
+Returns a column-major version of `A` on all backends by default, filter instance
 types may specialize this behavior.
 """
 function adapt_memlayout end
