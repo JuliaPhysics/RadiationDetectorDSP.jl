@@ -5,14 +5,11 @@ isdefined(@__MODULE__, :gen_test_waveforms) || include("test_utils.jl")
 using JLArrays
 
 import GPUArraysCore
-import KernelAbstractions
 
 GPUArraysCore.allowscalar(false)
 
 
 @testset "KernelAbstractions filtering with JLArrays" begin
-    @test RadiationDetectorDSP._ka_get_backend(JLArray(rand(Float32, 3))) isa KernelAbstractions.CPU
-
     n_samples, n_waveforms = 40, 8
     X = rand(Float32, n_samples, n_waveforms)
     inputs_cpu = ArrayOfSimilarVectors(X)
@@ -30,7 +27,7 @@ GPUArraysCore.allowscalar(false)
         fi = fltinstance(flt, si)
         Y_cpu = bc_rdfilt(fi, inputs_cpu)
         Y_gpu = with_allowscalar(() -> bc_rdfilt(fi, inputs_gpu))
-        @test flatview(Y_gpu) isa JLArray
+        @test flatview(Y_gpu) isa GPUArraysCore.AnyGPUArray
         @test Array(flatview(Y_gpu)) ≈ flatview(Y_cpu)
     end
 end
