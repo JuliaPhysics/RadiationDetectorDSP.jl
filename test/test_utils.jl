@@ -12,6 +12,7 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
 
 # KernelAbstractions runs CPU kernels via POCL, which fails to compile them on 32-bit hosts
+# (JuliaGPU/GPUCompiler.jl#1085)
 const KA = RadiationDetectorDSP.KernelAbstractions
 const ka_cpu_broken = Sys.WORD_SIZE == 32 && isdefined(KA, :POCLBackend) && KA.CPU === KA.POCLBackend
 
