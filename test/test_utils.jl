@@ -11,6 +11,11 @@ using Adapt
 using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
 
+# KernelAbstractions runs CPU kernels via POCL, which fails to compile them on 32-bit hosts
+const KA = RadiationDetectorDSP.KernelAbstractions
+const ka_cpu_broken = Sys.WORD_SIZE == 32 && isdefined(KA, :POCLBackend) && KA.CPU === KA.POCLBackend
+
+
 function gen_test_waveforms()
     noise = Float32[0.010744692, 0.011901839, 0.05194631, -0.011829155, -0.0061071543, -0.00019944388, 0.018830482, -0.061652776, 0.017121963, 0.040664993, 0.010738007, -0.06324256, 0.11602211, -0.011405745, 0.0582322, -0.0011262955, 0.10291999, -0.033106547, 0.07659402, -0.014946247, 0.076609485, 0.0036761805, -0.00330089, 0.037618753, 0.003061756, -0.13259014, -0.04753995, 0.06222269, -0.0016896317, -0.09834757, 0.029373525, 0.03482066, -0.10341741, -0.019071044, 0.05447747, 0.016070966, 0.1408137, 0.012808924, 0.0141442865, -0.041680623, -0.027131805, 0.046791397, -0.03010413, 0.11516451, 0.10181626, -0.010448066, -0.024512103]
 
@@ -21,7 +26,7 @@ function gen_test_waveforms()
 end
 
 
-function test_filter(flt, uflt, wfs_x, wfs_y_ref)
+function test_filter(flt, uflt, wfs_x, wfs_y_ref; bc_broken::Bool = false)
     @test @inferred(adapt(Array, flt)) isa getfield(parentmodule(typeof(flt)), nameof(typeof(flt)))
     @test @inferred(adapt(Array, uflt)) isa getfield(parentmodule(typeof(uflt)), nameof(typeof(uflt)))
 
@@ -60,22 +65,22 @@ function test_filter(flt, uflt, wfs_x, wfs_y_ref)
     Y = similar(Y_ref)
     fill!.(Y, NaN)
 
-    @test @inferred(bc_rdfilt!(Y, fi, X)) === Y
-    @test Y ≈ Y_ref
+    @test @inferred(bc_rdfilt!(Y, fi, X)) === Y broken = bc_broken
+    @test Y ≈ Y_ref broken = bc_broken
     #@test @inferred(bc_rdfilt!(Y, flt, X)) === Y
     #@test Y ≈ Y_ref
 
-    @test @inferred(bc_rdfilt(fi, X)) ≈ Y_ref
+    @test @inferred(bc_rdfilt(fi, X)) ≈ Y_ref broken = bc_broken
     #@test @inferred(bc_rdfilt(flt, X)) ≈ Y_ref
     #@test @inferred(broadcast(fi, X)) ≈ Y_ref
-    @test @inferred(broadcast(flt, X)) ≈ Y_ref
+    @test @inferred(broadcast(flt, X)) ≈ Y_ref broken = bc_broken
     #@test typeof(broadcast(fi, X)) == typeof(Y_ref)
-    @test typeof(broadcast(flt, X)) == typeof(Y_ref)
+    @test typeof(broadcast(flt, X)) == typeof(Y_ref) broken = bc_broken
 
-    @test @inferred(bc_rdfilt(fi, wfs_x)) ≈ wfs_y_ref
+    @test @inferred(bc_rdfilt(fi, wfs_x)) ≈ wfs_y_ref broken = bc_broken
     #@test @inferred(bc_rdfilt(flt, wfs_x)) ≈ wfs_y_ref
     #@test @inferred(broadcast(fi, wfs_x)) ≈ wfs_y_ref
-    @test @inferred(broadcast(uflt, wfs_x)) ≈ wfs_y_ref
+    @test @inferred(broadcast(uflt, wfs_x)) ≈ wfs_y_ref broken = bc_broken
     #@test typeof(broadcast(fi, wfs_x)) == typeof(wfs_y_ref)
-    @test typeof(broadcast(uflt, wfs_x)) == typeof(wfs_y_ref)
+    @test typeof(broadcast(uflt, wfs_x)) == typeof(wfs_y_ref) broken = bc_broken
 end

@@ -26,7 +26,7 @@ isdefined(@__MODULE__, :gen_test_waveforms) || include("test_utils.jl")
     @test ConvolutionFilter(flt).offset == -3
     @test uflt(wfs_x[1]).time == wfs_x[1].time[begin+3:end-3]
 
-    wfs_y_ref = ArrayOfRDWaveforms((Fill(wfs_x.time[1][begin+3:end-3], length(wfs_x)), ConvolutionFilter(flt).(wfs_x.signal)))
+    wfs_y_ref = ArrayOfRDWaveforms((Fill(wfs_x.time[1][begin+3:end-3], length(wfs_x)), convert(ArrayOfSimilarArrays, [ConvolutionFilter(flt)(x) for x in wfs_x.signal])))
 
-    test_filter(flt, uflt, wfs_x, wfs_y_ref)
+    test_filter(flt, uflt, wfs_x, wfs_y_ref; bc_broken = ka_cpu_broken)
 end

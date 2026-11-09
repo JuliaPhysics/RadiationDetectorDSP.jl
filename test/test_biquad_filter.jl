@@ -10,6 +10,8 @@ using Adapt
 
 using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
+isdefined(@__MODULE__, :gen_test_waveforms) || include("test_utils.jl")
+
 
 @testset "BiquadFilter" begin
     flt = BiquadFilter((0.2, 0.15, 0.3), (-0.8, 0.4))
@@ -71,22 +73,22 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
     Y = similar(X)
     fill!.(Y, NaN)
 
-    @test @inferred(bc_rdfilt!(Y, fi, X)) === Y
-    @test Y ≈ Y_ref
+    @test @inferred(bc_rdfilt!(Y, fi, X)) === Y broken = ka_cpu_broken
+    @test Y ≈ Y_ref broken = ka_cpu_broken
     #@test @inferred(bc_rdfilt!(Y, flt, X)) === Y
     #@test Y ≈ Y_ref
 
-    @test @inferred(bc_rdfilt(fi, X)) ≈ Y_ref
+    @test @inferred(bc_rdfilt(fi, X)) ≈ Y_ref broken = ka_cpu_broken
     #@test @inferred(bc_rdfilt(flt, X)) ≈ Y_ref
     #@test @inferred(broadcast(fi, X)) ≈ Y_ref
-    @test @inferred(broadcast(flt, X)) ≈ Y_ref
+    @test @inferred(broadcast(flt, X)) ≈ Y_ref broken = ka_cpu_broken
     #@test typeof(broadcast(fi, X)) == typeof(Y_ref)
-    @test typeof(broadcast(flt, X)) == typeof(Y_ref)
+    @test typeof(broadcast(flt, X)) == typeof(Y_ref) broken = ka_cpu_broken
 
-    @test @inferred(bc_rdfilt(fi, wfs_x)) ≈ wfs_y_ref
+    @test @inferred(bc_rdfilt(fi, wfs_x)) ≈ wfs_y_ref broken = ka_cpu_broken
     #@test @inferred(bc_rdfilt(flt, wfs_x)) ≈ wfs_y_ref
     #@test @inferred(broadcast(fi, wfs_x)) ≈ wfs_y_ref
-    @test @inferred(broadcast(flt, wfs_x)) ≈ wfs_y_ref
+    @test @inferred(broadcast(flt, wfs_x)) ≈ wfs_y_ref broken = ka_cpu_broken
     #@test typeof(broadcast(fi, wfs_x)) == typeof(wfs_y_ref)
-    @test typeof(broadcast(flt, wfs_x)) == typeof(wfs_y_ref)
+    @test typeof(broadcast(flt, wfs_x)) == typeof(wfs_y_ref) broken = ka_cpu_broken
 end
