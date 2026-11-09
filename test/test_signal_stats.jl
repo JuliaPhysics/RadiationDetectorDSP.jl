@@ -2,7 +2,7 @@
 using Test
 using Statistics
 
-include("test_utils.jl")
+isdefined(@__MODULE__, :gen_test_waveforms) || include("test_utils.jl")
 
 @testset "signalstats" begin
     # Flat signal: mean=5, sigma=0, slope=0
