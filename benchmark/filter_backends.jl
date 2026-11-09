@@ -86,13 +86,14 @@ function timings(f, flt, signals, sync; n_warmup = 3, n = 20)
     end
 end
 
-function run_benchmarks(n_waveforms::Integer; skip = String[])
+# `skip` may contain approach names and `(filter name, approach name)` tuples.
+function run_benchmarks(n_waveforms::Integer; skip = [], filters = filters)
     X = RD.rand_waveforms(Xoshiro(1), Float32, n_samples, n_waveforms; tau_fall = (tau, tau)).waveforms
     results = NamedTuple[]
     for (fname, flt) in filters
         Y_ref = nothing
         for (aname, (f, signals, sync, opts)) in approaches(X)
-            aname in skip && continue
+            (aname in skip || (fname, aname) in skip) && continue
             row = try
                 fc, t_compile = compiled(f, flt, signals, opts)
                 Y = on_host(fc(flt, signals))
