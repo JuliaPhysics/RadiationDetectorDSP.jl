@@ -201,7 +201,8 @@ function _fft_conv_columns!(Y::AbstractMatrix, fi::FFTConvFilterInstance{T}, X::
     @argcheck size(Y, 1) == flt_output_length(fi)
     @argcheck axes(Y, 2) == axes(X, 2)
     if get_compute_unit(X) isa CPUnit && get_compute_unit(Y) isa CPUnit
-        _fft_conv_columns_blocked!(Y, fi, X)
+        # Blocks of Y are written while other blocks of X are still to be read:
+        _fft_conv_columns_blocked!(Y, fi, Base.unalias(Y, X))
     else
         adapted_fi = adapt(get_compute_unit(X), fi)
         X_ext = fill!(similar(X, T, (fi.n_fft, size(X, 2))), zero(T))

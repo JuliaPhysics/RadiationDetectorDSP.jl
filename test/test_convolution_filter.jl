@@ -135,6 +135,12 @@ end
     @test size(Y2) == (3, 4)
     @test allclose(Y2, [linconv(h, x) for x in X2], h, X2, 1e-13)
 
+    # output sharing memory with the input, in reverse column order, across several blocks
+    A = repeat(Float64.(1:600)', 17)
+    fi = fltinstance(ConvolutionFilter(FFTConvolution(), [1.0]), smplinfo(A[:, 1]))
+    bc_rdfilt!(ArrayOfSimilarArrays{Float64,1,1}(view(A, :, 600:-1:1)), fi, ArrayOfSimilarArrays{Float64,1,1}(A))
+    @test A ≈ repeat(Float64.(600:-1:1)', 17)
+
     # input length has to match the filter instance
     x = randn(50)
     fi = fltinstance(ConvolutionFilter(FFTConvolution(), randn(5)), smplinfo(x))
