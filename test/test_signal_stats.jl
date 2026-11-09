@@ -29,6 +29,15 @@ include("test_utils.jl")
     @test stats_sub.slope ≈ 2.0 atol=1e-10
     @test stats_sub.mean ≈ 2.0 * 3.5 + 1.0 atol=1e-10  # mean x in [2,5] = 3.5
 
+    # Integer samples below the first sample of the window, and with a spread beyond typemax(Int16)
+    for ys_int in (UInt16[100, 99, 101, 98, 102, 97, 103, 96, 104, 95], Int16.(20000 .* (-1) .^ (1:10)))
+        stats_int = signalstats(RDWaveform(xs, ys_int), 0.0, 9.0)
+        stats_float = signalstats(RDWaveform(xs, Float64.(ys_int)), 0.0, 9.0)
+        for k in keys(stats_float)
+            @test stats_int[k] ≈ stats_float[k]
+        end
+    end
+
     # Large mean compared to the spread, on a Float32 time axis far from zero
     ts = range(60000f0u"ns", step = 16f0u"ns", length = 4000)
     t_ns = ustrip.(u"ns", collect(ts))
