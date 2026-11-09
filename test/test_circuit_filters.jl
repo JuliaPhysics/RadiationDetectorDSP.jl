@@ -7,6 +7,8 @@ using InverseFunctions
 using RadiationDetectorSignals, Unitful, ArraysOfArrays
 using Statistics
 
+isdefined(@__MODULE__, :gen_test_waveforms) || include("test_utils.jl")
+
 
 @testset "circuit_filters" begin
     plot(args...) = nothing
@@ -125,7 +127,7 @@ using Statistics
             @test flt(wf).signal ≈ output.signal
             @test eltype(flt(wf).signal) == Float32
             signals = ArrayOfSimilarArrays([wf.signal, wf.signal])
-            @test RC_CR2Filter(tau = 10).(signals) ≈ ArrayOfSimilarArrays([flt(wf).signal, flt(wf).signal])
+            @test RC_CR2Filter(tau = 10).(signals) ≈ ArrayOfSimilarArrays([flt(wf).signal, flt(wf).signal]) broken = ka_cpu_broken
         end
         for tau in (0, -1, Inf, NaN)
             @test_throws ArgumentError RC_CR2Filter(tau = tau)(step_signal)

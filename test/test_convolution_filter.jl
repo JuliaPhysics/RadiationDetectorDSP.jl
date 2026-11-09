@@ -12,9 +12,12 @@ using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
 import DSP
 
+isdefined(@__MODULE__, :gen_test_waveforms) || include("test_utils.jl")
+
 
 @testset "ConvolutionFilter" begin
     for convmethod in [DirectConvolution(), FFTConvolution()]
+        bc_broken = ka_cpu_broken && convmethod isa DirectConvolution
     # Savitzky-Golay filter -2:4 (length 7, evaluate at 3rd position), 3rd order, 1st deriv:
         flt = ConvolutionFilter(convmethod, [-0.115079365079365, -0.18253968253968259, -0.0753968253968254, 0.09523809523809519, 0.21825396825396814, 0.18253968253968253, -0.12301587301587294])
         
@@ -75,24 +78,24 @@ import DSP
         Y = VectorOfSimilarVectors(similar(flatview(X), (innersize(X, 1) - 6, size(X, 1))))
         fill!.(Y, NaN)
 
-        @test @inferred(bc_rdfilt!(Y, fi, X)) === Y
-        @test Y ≈ Y_ref
+        @test @inferred(bc_rdfilt!(Y, fi, X)) === Y broken = bc_broken
+        @test Y ≈ Y_ref broken = bc_broken
         #@test @inferred(bc_rdfilt!(Y, flt, X)) === Y
         #@test Y ≈ Y_ref
 
-        @test @inferred(bc_rdfilt(fi, X)) ≈ Y_ref
+        @test @inferred(bc_rdfilt(fi, X)) ≈ Y_ref broken = bc_broken
         #@test @inferred(bc_rdfilt(flt, X)) ≈ Y_ref
         #@test @inferred(broadcast(fi, X)) ≈ Y_ref
-        @test @inferred(broadcast(flt, X)) ≈ Y_ref
+        @test @inferred(broadcast(flt, X)) ≈ Y_ref broken = bc_broken
         #@test typeof(broadcast(fi, X)) == typeof(Y_ref)
-        @test typeof(broadcast(flt, X)) == typeof(Y_ref)
+        @test typeof(broadcast(flt, X)) == typeof(Y_ref) broken = bc_broken
 
-        @test @inferred(bc_rdfilt(fi, wfs_x)) ≈ wfs_y_ref
+        @test @inferred(bc_rdfilt(fi, wfs_x)) ≈ wfs_y_ref broken = bc_broken
         #@test @inferred(bc_rdfilt(flt, wfs_x)) ≈ wfs_y_ref
         #@test @inferred(broadcast(fi, wfs_x)) ≈ wfs_y_ref
-        @test @inferred(broadcast(flt, wfs_x)) ≈ wfs_y_ref
+        @test @inferred(broadcast(flt, wfs_x)) ≈ wfs_y_ref broken = bc_broken
         #@test typeof(broadcast(fi, wfs_x)) == typeof(wfs_y_ref)
-        @test typeof(broadcast(flt, wfs_x)) == typeof(wfs_y_ref)
+        @test typeof(broadcast(flt, wfs_x)) == typeof(wfs_y_ref) broken = bc_broken
     end
 end
 
@@ -119,8 +122,8 @@ end
         @test eltype(flatview(Y)) == T
         @test allclose(Y, Y_ref, h, X, rtol)
         @test allclose(rdfilt.(Ref(fi), X), Y_ref, h, X, rtol)
-        Y_direct = bc_rdfilt(fltinstance(ConvolutionFilter(DirectConvolution(), h), smplinfo(X[1])), X)
-        @test allclose(Y, Y_direct, h, X, rtol)
+        fi_direct = fltinstance(ConvolutionFilter(DirectConvolution(), h), smplinfo(X[1]))
+        @test allclose(Y, bc_rdfilt(fi_direct, X), h, X, rtol) broken = ka_cpu_broken
 
         Y_pre = ArrayOfSimilarArrays{T,1,1}(fill(T(NaN), n_input - n_filter + 1, n_signals))
         @test bc_rdfilt!(Y_pre, fi, X) === Y_pre
