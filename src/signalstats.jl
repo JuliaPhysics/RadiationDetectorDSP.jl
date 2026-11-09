@@ -38,8 +38,9 @@ function _signalstats_impl(X::AbstractArray{<:RealQuantity}, Y::AbstractArray{<:
 
     # Sums are taken relative to the first point of the window, so the variances
     # do not suffer from cancellation when the mean is large compared to the spread.
-    # No `@fastmath` here: reassociation could undo the shift.
-    x0, y0 = convert(typeof(zx), X[first(idxs)]), Y[first(idxs)]
+    # No `@fastmath` here: reassociation could undo the shift. The shift is done in
+    # floating point, since integer samples could wrap around or overflow.
+    x0, y0 = convert(typeof(zx), X[first(idxs)]), float(Y[first(idxs)])
     @inbounds @simd for i in idxs
         x, y = convert(typeof(zx), X[i]) - x0, Y[i] - y0
         sum_X = x + sum_X
