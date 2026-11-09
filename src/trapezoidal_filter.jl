@@ -124,7 +124,7 @@ end
 end
 
 
-adapt_memlayout(::TrapezoidalChargeFilterInstance, ::GPU, A::AbstractArray{<:Number}) = _row_major(A)
+adapt_memlayout(::TrapezoidalChargeFilterInstance, backend::_KA_Backend, A::AbstractArray{<:Number}) = _row_major_on_gpu(backend, A)
 
 function bc_rdfilt!(
     outputs::ArrayOfSimilarVectors{<:RealQuantity},

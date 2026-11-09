@@ -201,6 +201,11 @@ function adapt_memlayout end
 
 adapt_memlayout(::AbstractRadSigFilterInstance, ::_KA_Backend, A::AbstractArray{<:Number}) = _col_major(A)
 
+# Row-major on GPU backends, column-major on the CPU. KernelAbstractions v0.10 turned
+# `GPU` into an alias of `Backend`, so GPU backends can't be dispatched on directly.
+_row_major_on_gpu(::KernelAbstractions.CPU, A::AbstractArray{<:Number}) = _col_major(A)
+_row_major_on_gpu(::_KA_Backend, A::AbstractArray{<:Number}) = _row_major(A)
+
 
 """
     bc_rdfilt(flt::AbstractRadSigFilter, input)
