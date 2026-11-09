@@ -126,6 +126,8 @@ _filterlen(fi::DirectConvFilterInstance) = size(fi.reverse_h, 1)
     return y
 end
 
+adapt_memlayout(::DirectConvFilterInstance, backend::_KA_Backend, A::AbstractArray{<:Number}) = _row_major_on_gpu(backend, A)
+
 function bc_rdfilt!(
     outputs::ArrayOfSimilarVectors{<:RealQuantity},
     fi::DirectConvFilterInstance,
