@@ -65,6 +65,7 @@ include("sg_filter.jl")
 include("zac_filter.jl")
 include("cusp_filter.jl")
 include("gaussian_filter.jl")
+include("arrayops.jl")
 include("rand_waveforms.jl")
 
 

@@ -25,6 +25,7 @@ Test.@testset "Package RadiationDetectorDSP" begin
     include("test_signal_stats.jl")
     include("test_intersect.jl")
     include("test_signal_estimator.jl")
+    include("test_arrayops.jl")
     include("test_ka_jlarrays.jl")
     include("test_rand_waveforms.jl")
 

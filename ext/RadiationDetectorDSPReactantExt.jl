@@ -23,4 +23,8 @@ function RadiationDetectorDSP.elsmplinfo(smpls::AbstractArray{<:AbstractVector{T
 end
 
 
+RadiationDetectorDSP._convert_smpls(::Type{T}, X::AbstractArray{TracedRNumber{T}}) where {T} = X
+RadiationDetectorDSP._convert_smpls(::Type{T}, X::AbstractArray{<:TracedRNumber}) where {T} = TracedRNumber{T}.(X)
+
+
 end # module RadiationDetectorDSPReactantExt
