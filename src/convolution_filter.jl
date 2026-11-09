@@ -232,7 +232,8 @@ function _fft_conv_columns_blocked!(Y::AbstractMatrix, fi::FFTConvFilterInstance
         Y_ext = Matrix{T}(undef, fi.n_fft, bs)
         (; X_ext, F, Y_ext, p_fwd = plan_rfft(X_ext, 1), p_bwd = plan_brfft(F, fi.n_fft, 1))
     end
-    tasks = map(groups, bufs) do group, buf
+    # @sync waits for all tasks before it rethrows an error, so no task can still write to Y afterwards.
+    @sync for (group, buf) in zip(groups, bufs)
         Threads.@spawn for b in group
             cols = blocks[b]
             n = length(cols)
@@ -243,6 +244,5 @@ function _fft_conv_columns_blocked!(Y::AbstractMatrix, fi::FFTConvFilterInstance
             view(Y, :, cols) .= view(buf.Y_ext, kept_rows, 1:n)
         end
     end
-    foreach(wait, tasks)
     return Y
 end
