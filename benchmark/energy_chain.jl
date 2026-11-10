@@ -76,21 +76,33 @@ function reactant_sync(Y)
     Reactant.synchronize(Y)
 end
 
-function approaches(X::Matrix)
-    sig_cpu = ArrayOfSimilarVectors(X)
-    sig_gpu = ArrayOfSimilarVectors(CuArray(X))
-    sig_r = ArrayOfSimilarVectors(Reactant.to_rarray(X))
-    cuda_sync = _ -> CUDA.synchronize()
-    r_sync = reactant_sync
-    return [
-        "CPU, signal by signal" => (energies_loop, sig_cpu, identity, nothing),
-        "CPU, kernels" => (energies_kernels, sig_cpu, identity, nothing),
-        "CUDA.jl, kernels" => (energies_kernels, sig_gpu, cuda_sync, nothing),
-        "CUDA.jl, array ops" => (energies_arrayops, sig_gpu, cuda_sync, nothing),
-        "Reactant, CUDA kernels" => (energies_kernels, sig_r, r_sync, (; raise = false)),
-        "Reactant, raised kernels" => (energies_kernels, sig_r, r_sync, (; raise = true)),
-        "Reactant, array ops" => (energies_arrayops, sig_r, r_sync, (; raise = false)),
-    ]
+# See filter_backends.jl on `frameworks`.
+function approaches(X::Matrix; frameworks = (:cpu, :cuda, :reactant))
+    result = Pair{String,Any}[]
+    if :cpu in frameworks
+        sig_cpu = ArrayOfSimilarVectors(X)
+        push!(result,
+            "CPU, signal by signal" => (energies_loop, sig_cpu, identity, nothing),
+            "CPU, kernels" => (energies_kernels, sig_cpu, identity, nothing),
+        )
+    end
+    if :cuda in frameworks
+        sig_gpu = ArrayOfSimilarVectors(CuArray(X))
+        cuda_sync = _ -> CUDA.synchronize()
+        push!(result,
+            "CUDA.jl, kernels" => (energies_kernels, sig_gpu, cuda_sync, nothing),
+            "CUDA.jl, array ops" => (energies_arrayops, sig_gpu, cuda_sync, nothing),
+        )
+    end
+    if :reactant in frameworks
+        sig_r = ArrayOfSimilarVectors(Reactant.to_rarray(X))
+        push!(result,
+            "Reactant, CUDA kernels" => (energies_kernels, sig_r, reactant_sync, (; raise = false)),
+            "Reactant, raised kernels" => (energies_kernels, sig_r, reactant_sync, (; raise = true)),
+            "Reactant, array ops" => (energies_arrayops, sig_r, reactant_sync, (; raise = false)),
+        )
+    end
+    return result
 end
 
 function compiled(f, chain, signals, opts)
@@ -101,11 +113,13 @@ end
 
 # See filter_backends.jl on the garbage collection between the calls.
 function timings(f, chain, signals, sync; n_warmup = 3, n = 20)
-    for _ in 1:n_warmup
-        sync(f(chain, signals))
+    t_warmup = minimum(1:n_warmup) do _
+        t = @elapsed sync(f(chain, signals))
         GC.gc(false)
+        t
     end
-    map(1:n) do _
+    # Fewer repetitions for calls that take long:
+    map(1:(t_warmup > 0.5 ? 5 : n)) do _
         t0 = time_ns()
         sync(f(chain, signals))
         t = (time_ns() - t0) / 1e6
@@ -114,22 +128,29 @@ function timings(f, chain, signals, sync; n_warmup = 3, n = 20)
     end
 end
 
-function transfer_times(X::Matrix; n = 5)
-    t_cuda = minimum(_ -> (@elapsed CUDA.@sync CuArray(X)), 1:n)
-    t_reactant = minimum(_ -> (@elapsed reactant_sync(Reactant.to_rarray(X))), 1:n)
+function transfer_times(X::Matrix; n = 5, frameworks = (:cuda, :reactant))
+    t_cuda = :cuda in frameworks ? minimum(_ -> (t = (@elapsed CUDA.@sync CuArray(X)); GC.gc(); t), 1:n) : NaN
+    t_reactant = :reactant in frameworks ? minimum(_ -> (t = (@elapsed reactant_sync(Reactant.to_rarray(X))); GC.gc(); t), 1:n) : NaN
     return (cuda = 1e3 * t_cuda, reactant = 1e3 * t_reactant)
 end
 
-function run_benchmarks(X::Matrix, chain::EnergyChain; skip = String[], label = "")
+function run_benchmarks(X::Matrix, chain::EnergyChain; frameworks = (:cpu, :cuda, :reactant), kwargs...)
+    run_benchmarks(approaches(X; frameworks = frameworks), X, chain; kwargs...)
+end
+
+# `backends` from `approaches`, `X` the host data for the reference results.
+function run_benchmarks(backends::AbstractVector{<:Pair}, X::Matrix, chain::EnergyChain; skip = String[], label = "")
     results = NamedTuple[]
     n_samples, n_waveforms = size(X)
-    E_ref = nothing
-    for (aname, (f, signals, sync, opts)) in approaches(X)
+    E_ref = vec(energies_loop(chain, ArrayOfSimilarVectors(X)))
+    # A failed kernel launch can leave Reactant's GPU context unusable:
+    reactant_ok = true
+    for (aname, (f, signals, sync, opts)) in backends
         aname in skip && continue
         row = try
+            startswith(aname, "Reactant") && !reactant_ok && error("skipped after an earlier Reactant failure")
             fc, t_compile = compiled(f, chain, signals, opts)
             E = vec(Array(fc(chain, signals)))
-            E_ref === nothing && (E_ref = E)
             ts = timings(fc, chain, signals, sync)
             (label = label, approach = aname, n_samples = n_samples, n_waveforms = n_waveforms, t_min = minimum(ts), t_median = median(ts),
              t_compile = t_compile, rel_max_dev = Float64(maximum(abs, E .- E_ref) / maximum(abs, E_ref)), error = "")
@@ -138,6 +159,7 @@ function run_benchmarks(X::Matrix, chain::EnergyChain; skip = String[], label = 
              t_compile = NaN, rel_max_dev = NaN, error = first(replace(sprint(showerror, err), '\n' => ' '), 200))
         end
         push!(results, row)
+        startswith(aname, "Reactant") && !(row.rel_max_dev < 1e-3) && (reactant_ok = false)
         @printf("%-26s %9.3f ms (median %9.3f ms)  %8.2f M waveforms/s  dev %.1e  compile %5.1f s  %s\n", aname, row.t_min, row.t_median,
                 n_waveforms / row.t_min / 1e3, row.rel_max_dev, row.t_compile, row.error)
         flush(stdout)

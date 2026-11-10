@@ -36,6 +36,21 @@ const filters = [
 kernels(flt, signals) = flatview(flt.(signals))
 arrayops(flt, signals) = flatview(RD.bc_rdfilt_arrayops(flt, signals))
 
+# Filtering into an output that is allocated only once, like a tuned CPU pipeline would do:
+mutable struct InPlace
+    outputs::Any
+end
+
+function (ip::InPlace)(flt, signals)
+    fi = RD.fltinstance(flt, RD.elsmplinfo(signals))
+    T, sz = RD.flt_output_smpltype(fi), (RD.flt_output_length(fi), length(signals))
+    outputs = ip.outputs
+    if !(outputs isa ArrayOfSimilarVectors{T} && size(flatview(outputs)) == sz)
+        outputs = ip.outputs = ArrayOfSimilarVectors(similar(flatview(signals), T, sz))
+    end
+    flatview(RD.bc_rdfilt!(outputs, fi, signals))
+end
+
 unwrapped(Y) = Y isa Transpose ? parent(Y) : Y
 on_host(Y) = Y isa Transpose ? permutedims(Array(parent(Y))) : Array(Y)
 
@@ -46,21 +61,36 @@ function reactant_sync(Y)
 end
 
 # name => (function, input, synchronize, compile options or nothing)
-function approaches(X::Matrix)
-    sig_cpu = ArrayOfSimilarVectors(X)
-    sig_gpu = ArrayOfSimilarVectors(CuArray(X))
-    sig_r = ArrayOfSimilarVectors(Reactant.to_rarray(X))
-    cuda_sync = _ -> CUDA.synchronize()
-    r_sync = Y -> reactant_sync(unwrapped(Y))
-    return [
-        "CPU, kernels" => (kernels, sig_cpu, identity, nothing),
-        "CPU, array ops" => (arrayops, sig_cpu, identity, nothing),
-        "CUDA.jl, kernels" => (kernels, sig_gpu, cuda_sync, nothing),
-        "CUDA.jl, array ops" => (arrayops, sig_gpu, cuda_sync, nothing),
-        "Reactant, CUDA kernels" => (kernels, sig_r, r_sync, (; raise = false)),
-        "Reactant, raised kernels" => (kernels, sig_r, r_sync, (; raise = true)),
-        "Reactant, array ops" => (arrayops, sig_r, r_sync, (; raise = false)),
-    ]
+# CUDA.jl and Reactant manage GPU memory separately, so each one is best benchmarked in a
+# Julia session of its own. `frameworks` selects the arrays that are created on the device.
+function approaches(X::Matrix; frameworks = (:cpu, :cuda, :reactant))
+    result = Pair{String,Any}[]
+    if :cpu in frameworks
+        sig_cpu = ArrayOfSimilarVectors(X)
+        push!(result,
+            "CPU, kernels" => (kernels, sig_cpu, identity, nothing),
+            "CPU, kernels, in-place" => (InPlace(nothing), sig_cpu, identity, nothing),
+            "CPU, array ops" => (arrayops, sig_cpu, identity, nothing),
+        )
+    end
+    if :cuda in frameworks
+        sig_gpu = ArrayOfSimilarVectors(CuArray(X))
+        cuda_sync = _ -> CUDA.synchronize()
+        push!(result,
+            "CUDA.jl, kernels" => (kernels, sig_gpu, cuda_sync, nothing),
+            "CUDA.jl, array ops" => (arrayops, sig_gpu, cuda_sync, nothing),
+        )
+    end
+    if :reactant in frameworks
+        sig_r = ArrayOfSimilarVectors(Reactant.to_rarray(X))
+        r_sync = Y -> reactant_sync(unwrapped(Y))
+        push!(result,
+            "Reactant, CUDA kernels" => (kernels, sig_r, r_sync, (; raise = false)),
+            "Reactant, raised kernels" => (kernels, sig_r, r_sync, (; raise = true)),
+            "Reactant, array ops" => (arrayops, sig_r, r_sync, (; raise = false)),
+        )
+    end
+    return result
 end
 
 function compiled(f, flt, signals, opts)
@@ -73,11 +103,13 @@ end
 # fresh device memory takes much longer than the filters themselves. So the garbage
 # collector runs between the calls, outside of the timed region.
 function timings(f, flt, signals, sync; n_warmup = 3, n = 20)
-    for _ in 1:n_warmup
-        sync(f(flt, signals))
+    t_warmup = minimum(1:n_warmup) do _
+        t = @elapsed sync(f(flt, signals))
         GC.gc(false)
+        t
     end
-    map(1:n) do _
+    # Fewer repetitions for calls that take long:
+    map(1:(t_warmup > 0.5 ? 5 : n)) do _
         t0 = time_ns()
         sync(f(flt, signals))
         t = (time_ns() - t0) / 1e6
@@ -86,27 +118,36 @@ function timings(f, flt, signals, sync; n_warmup = 3, n = 20)
     end
 end
 
-# `skip` may contain approach names and `(filter name, approach name)` tuples.
-function run_benchmarks(n_waveforms::Integer; skip = [], filters = filters)
-    X = RD.rand_waveforms(Xoshiro(1), Float32, n_samples, n_waveforms; tau_fall = (tau, tau)).waveforms
+function run_benchmarks(X::Matrix, filters = filters; frameworks = (:cpu, :cuda, :reactant), kwargs...)
+    run_benchmarks(approaches(X; frameworks = frameworks), X, filters; kwargs...)
+end
+
+# `backends` from `approaches`, `X` the host data for the reference results. `skip` may contain
+# approach names and `(filter name, approach name)` tuples.
+function run_benchmarks(backends::AbstractVector{<:Pair}, X::Matrix, filters = filters; skip = [], label = "")
+    n_samples, n_waveforms = size(X)
+    sig_ref = ArrayOfSimilarVectors(X)
     results = NamedTuple[]
+    # A failed kernel launch can leave Reactant's GPU context unusable:
+    reactant_ok = true
     for (fname, flt) in filters
-        Y_ref = nothing
-        for (aname, (f, signals, sync, opts)) in approaches(X)
+        Y_ref = on_host(kernels(flt, sig_ref))
+        for (aname, (f, signals, sync, opts)) in backends
             (aname in skip || (fname, aname) in skip) && continue
             row = try
+                startswith(aname, "Reactant") && !reactant_ok && error("skipped after an earlier Reactant failure")
                 fc, t_compile = compiled(f, flt, signals, opts)
                 Y = on_host(fc(flt, signals))
-                Y_ref === nothing && (Y_ref = Y)
                 ts = timings(fc, flt, signals, sync)
-                (filter = fname, approach = aname, n_waveforms = n_waveforms, t_min = minimum(ts), t_median = median(ts),
-                 t_compile = t_compile, max_dev = Float64(maximum(abs, Y .- Y_ref)), scale = Float64(maximum(abs, Y_ref)), error = "")
+                (label = label, filter = fname, approach = aname, n_samples = n_samples, n_waveforms = n_waveforms, t_min = minimum(ts),
+                 t_median = median(ts), t_compile = t_compile, rel_max_dev = Float64(maximum(abs, Y .- Y_ref) / maximum(abs, Y_ref)), error = "")
             catch err
-                (filter = fname, approach = aname, n_waveforms = n_waveforms, t_min = NaN, t_median = NaN,
-                 t_compile = NaN, max_dev = NaN, scale = NaN, error = first(replace(sprint(showerror, err), '\n' => ' '), 200))
+                (label = label, filter = fname, approach = aname, n_samples = n_samples, n_waveforms = n_waveforms, t_min = NaN,
+                 t_median = NaN, t_compile = NaN, rel_max_dev = NaN, error = first(replace(sprint(showerror, err), '\n' => ' '), 200))
             end
             push!(results, row)
-            @printf("%-44s %-26s %9.3f ms (median %9.3f ms)  dev %.1e  %s\n", fname, aname, row.t_min, row.t_median, row.max_dev / row.scale, row.error)
+            startswith(aname, "Reactant") && !(row.rel_max_dev < 1e-3) && (reactant_ok = false)
+            @printf("%-44s %-26s %9.3f ms (median %9.3f ms)  dev %.1e  %s\n", fname, aname, row.t_min, row.t_median, row.rel_max_dev, row.error)
             flush(stdout)
             GC.gc()
         end
@@ -114,12 +155,17 @@ function run_benchmarks(n_waveforms::Integer; skip = [], filters = filters)
     return results
 end
 
+function run_benchmarks(n_waveforms::Integer; kwargs...)
+    X = RD.rand_waveforms(Xoshiro(1), Float32, n_samples, n_waveforms; tau_fall = (tau, tau)).waveforms
+    run_benchmarks(X; label = "synthetic", kwargs...)
+end
+
 function write_csv(path, results)
     open(path, "w") do io
-        println(io, "filter,approach,n_samples,n_waveforms,t_min_ms,t_median_ms,t_compile_s,rel_max_dev,error")
+        println(io, "data,filter,approach,n_samples,n_waveforms,t_min_ms,t_median_ms,t_compile_s,rel_max_dev,error")
         for r in results
-            println(io, join(('"' * r.filter * '"', '"' * r.approach * '"', n_samples, r.n_waveforms, r.t_min, r.t_median,
-                              r.t_compile, r.max_dev / r.scale, '"' * replace(r.error, '"' => '\'') * '"'), ","))
+            println(io, join(('"' * r.label * '"', '"' * r.filter * '"', '"' * r.approach * '"', r.n_samples, r.n_waveforms, r.t_min, r.t_median,
+                              r.t_compile, r.rel_max_dev, '"' * replace(r.error, '"' => '\'') * '"'), ","))
         end
     end
 end
