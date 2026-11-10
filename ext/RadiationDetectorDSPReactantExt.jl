@@ -27,4 +27,9 @@ RadiationDetectorDSP._convert_smpls(::Type{T}, X::AbstractArray{TracedRNumber{T}
 RadiationDetectorDSP._convert_smpls(::Type{T}, X::AbstractArray{<:TracedRNumber}) where {T} = TracedRNumber{T}.(X)
 
 
+# Without a fixed work-group size, kernels may be launched as a single block over the whole
+# range, which fails silently for large batches of signals:
+RadiationDetectorDSP._ka_threads(::RadiationDetectorDSP._KA_Backend, ::AbstractArray{<:TracedRNumber}) = (256,)
+
+
 end # module RadiationDetectorDSPReactantExt

@@ -104,7 +104,7 @@ function bc_lsqfitat!(
     A_slqfit = adapt(adaptor, _lsq_fit_matrix(0:(n - 1), degree))
 
     backend = _ka_get_backend(flat_Ys)
-    kernel! = _lsqfitatpos_kernel!(backend, _ka_threads(backend)...)
+    kernel! = _lsqfitatpos_kernel!(backend, _ka_threads(backend, Y_est)...)
     kernel_ret = kernel!(Y_est, A_slqfit, X_axis, flat_Ys, adapted_X_pos, ndrange=_kbc_size(size(Y_est)))
     _ka_synchronize(kernel!, kernel_ret)
     return _kbc_result(Y_est)

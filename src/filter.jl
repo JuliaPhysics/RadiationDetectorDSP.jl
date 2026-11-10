@@ -281,8 +281,9 @@ end
     rdfilt!(outputs[idxs...], fi, inputs[idxs...])
 end
 
-_ka_threads(::KernelAbstractions.CPU) = (Base.Threads.nthreads(),)
-_ka_threads(::_KA_Backend) = ()
+# Work-group size for kernels that write to `A`:
+_ka_threads(::KernelAbstractions.CPU, A::AbstractArray) = (Base.Threads.nthreads(),)
+_ka_threads(::_KA_Backend, A::AbstractArray) = ()
 
 function _ka_bc_rdfilt!(
     outputs::ArrayOfSimilarVectors{<:Number},
@@ -295,7 +296,7 @@ function _ka_bc_rdfilt!(
     adapted_fi = adapt(adaptor, fi)
     
     backend = _ka_get_backend(flatview(outputs))
-    kernel! = _ka_filter_kernel!(backend, _ka_threads(backend)...)
+    kernel! = _ka_filter_kernel!(backend, _ka_threads(backend, flatview(outputs))...)
     kernel_ret = kernel!(outputs, inputs, adapted_fi, ndrange=size(inputs))
     _ka_synchronize(kernel!, kernel_ret)
     return outputs
