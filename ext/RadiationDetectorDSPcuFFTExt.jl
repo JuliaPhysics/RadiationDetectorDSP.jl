@@ -55,7 +55,7 @@ end
 # with transform length n_fft and n_input samples between signals: the padding then holds samples
 # of the next signal. Only the last signals, whose transforms would read past the end of X, are
 # padded explicitly (all signals, if X is not aligned as cuFFT requires). A non-finite sample may
-# therefore also spoil the output of the previous signal. The complex-to-real transform overwrites its input, which is a temporary array here.
+# therefore also spoil the output of the previous signal.
 function RadiationDetectorDSP._fft_conv_ext(fi::FFTConvFilterInstance{T}, X::DenseCuMatrix{T}) where {T<:Union{Float32,Float64}}
     n_input, n_signals = size(X)
     n_fft = _conv_fft_length(fi, X)
