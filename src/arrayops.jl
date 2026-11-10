@@ -104,9 +104,10 @@ end
 
 
 function _arrayops_rdfilt(fi::FFTConvFilterInstance{T}, X::AbstractMatrix) where {T}
-    rfft_h = adapt(get_compute_unit(X), fi.rfft_h)
-    X_ext = fill!(similar(X, T, (fi.n_fft, size(X, 2))), zero(T))
+    n_fft = _conv_fft_length(fi, X)
+    rfft_h = adapt(get_compute_unit(X), _conv_spectrum(fi, n_fft))
+    X_ext = fill!(similar(X, T, (n_fft, size(X, 2))), zero(T))
     view(X_ext, 1:fi.n_input, :) .= X
-    Y_ext = brfft(rfft(X_ext, 1) .* rfft_h, fi.n_fft, 1)
-    Y_ext[fi.n_filter:fi.n_input, :]
+    Y_ext = brfft(rfft(X_ext, 1) .* rfft_h, n_fft, 1)
+    Y_ext[_filterlen(fi):fi.n_input, :]
 end

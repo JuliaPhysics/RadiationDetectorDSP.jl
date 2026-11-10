@@ -73,12 +73,16 @@ function fltinstance(flt::ConvolutionFilter{FFTConvolution}, si::SamplingInfo{T}
     # FFTs are fast for lengths with only small prime factors. Zero-padding the input to n_fft
     # leaves the output samples n_filter:n_input free of circular wrap-around.
     n_fft = nextprod((2, 3, 5), n_input)
-    h_ext = similar(flt.coeffs, T, n_fft)
-    fill!(h_ext, zero(eltype(h_ext)))
-    copy!(view(h_ext, firstindex(h_ext):(firstindex(h_ext) + n_filter - 1)), flt.coeffs)
-    # includes the 1/n_fft normalization of the inverse transform (applied with brfft)
-    rfft_h = rfft(h_ext) ./ n_fft
-    FFTConvFilterInstance(rfft_h, n_filter, n_input, n_fft, flt.offset)
+    coeffs = T.(Array(flt.coeffs))
+    FFTConvFilterInstance(_conv_spectrum(coeffs, n_fft), coeffs, n_input, n_fft, flt.offset)
+end
+
+# Real FFT of the filter taps zero-padded to length n_fft, divided by n_fft (the normalization
+# of the inverse transform, which is applied with brfft):
+function _conv_spectrum(coeffs::AbstractVector{T}, n_fft::Integer) where {T<:Real}
+    h_ext = zeros(T, n_fft)
+    copyto!(h_ext, coeffs)
+    rfft(h_ext) ./ n_fft
 end
 
 
@@ -142,30 +146,40 @@ end
 
 Filter instance of a `ConvolutionFilter{FFTConvolution}` for inputs of length `n_input`.
 
-`rfft_h` is the real FFT of the filter taps zero-padded to length `n_fft >= n_input`, divided
-by `n_fft`. The input is zero-padded to `n_fft` as well, so `brfft(rfft(x_ext) .* rfft_h, n_fft)`
-is the circular convolution of length `n_fft`, and its samples `n_filter:n_input` equal the
-linear convolution of `x` with the taps.
+`rfft_h` is the real FFT of the filter taps `coeffs` zero-padded to length `n_fft >= n_input`,
+divided by `n_fft`. The input is zero-padded to `n_fft` as well, so
+`brfft(rfft(x_ext) .* rfft_h, n_fft)` is the circular convolution of length `n_fft`, and its
+samples `n_filter:n_input` equal the linear convolution of `x` with the taps.
+
+`n_fft` has only small prime factors, which suits FFTW. FFTs on GPUs are much faster for
+powers of two, so inputs that are not on the CPU are padded to the next power of two instead,
+with the spectrum of the taps computed for that length.
 """
-struct FFTConvFilterInstance{T<:Real,TV<:AbstractVector{Complex{T}}} <: AbstractConvFilterInstance{T}
+struct FFTConvFilterInstance{T<:Real,TV<:AbstractVector{Complex{T}},TC<:AbstractVector{T}} <: AbstractConvFilterInstance{T}
     rfft_h::TV
-    n_filter::Int
+    coeffs::TC
     n_input::Int
     n_fft::Int
     offset::Int
 end
 
-Adapt.adapt_structure(to, fi::FFTConvFilterInstance) = FFTConvFilterInstance(adapt(to, fi.rfft_h), fi.n_filter, fi.n_input, fi.n_fft, fi.offset)
+# The taps stay on the host, they are only needed to compute spectra:
+Adapt.adapt_structure(to, fi::FFTConvFilterInstance) = FFTConvFilterInstance(adapt(to, fi.rfft_h), fi.coeffs, fi.n_input, fi.n_fft, fi.offset)
 
-_filterlen(fi::FFTConvFilterInstance) = fi.n_filter
+_filterlen(fi::FFTConvFilterInstance) = length(fi.coeffs)
+
+_conv_fft_length(fi::FFTConvFilterInstance, X::AbstractArray) = get_compute_unit(X) isa CPUnit ? fi.n_fft : nextpow(2, fi.n_input)
+
+_conv_spectrum(fi::FFTConvFilterInstance, n_fft::Integer) = n_fft == fi.n_fft ? fi.rfft_h : _conv_spectrum(fi.coeffs, n_fft)
 
 
 function rdfilt(fi::FFTConvFilterInstance{T}, x::AbstractVector{<:Real}) where T
     @argcheck length(x) == fi.n_input
-    x_ext = fill!(similar(x, T, fi.n_fft), zero(T))
+    n_fft = _conv_fft_length(fi, x)
+    x_ext = fill!(similar(x, T, n_fft), zero(T))
     copyto!(x_ext, firstindex(x_ext), x, firstindex(x), length(x))
-    y_ext = brfft(rfft(x_ext) .* fi.rfft_h, fi.n_fft)
-    y_ext[(firstindex(y_ext) + fi.n_filter - 1):(firstindex(y_ext) + fi.n_input - 1)]
+    y_ext = brfft(rfft(x_ext) .* adapt(get_compute_unit(x), _conv_spectrum(fi, n_fft)), n_fft)
+    y_ext[(firstindex(y_ext) + _filterlen(fi) - 1):(firstindex(y_ext) + fi.n_input - 1)]
 end
 
 function rdfilt!(y::AbstractVector{T}, fi::FFTConvFilterInstance, x::AbstractVector{T}) where {T<:Real}
@@ -205,11 +219,12 @@ function _fft_conv_columns!(Y::AbstractMatrix, fi::FFTConvFilterInstance{T}, X::
         # Blocks of Y are written while other blocks of X are still to be read:
         _fft_conv_columns_blocked!(Y, fi, Base.unalias(Y, X))
     else
-        adapted_fi = adapt(get_compute_unit(X), fi)
-        X_ext = fill!(similar(X, T, (fi.n_fft, size(X, 2))), zero(T))
+        n_fft = _conv_fft_length(fi, X)
+        rfft_h = adapt(get_compute_unit(X), _conv_spectrum(fi, n_fft))
+        X_ext = fill!(similar(X, T, (n_fft, size(X, 2))), zero(T))
         X_ext[firstindex(X_ext, 1):(firstindex(X_ext, 1) + fi.n_input - 1), :] .= X
-        Y_ext = brfft(rfft(X_ext, 1) .* adapted_fi.rfft_h, fi.n_fft, 1)
-        Y .= view(Y_ext, (firstindex(Y_ext, 1) + fi.n_filter - 1):(firstindex(Y_ext, 1) + fi.n_input - 1), :)
+        Y_ext = brfft(rfft(X_ext, 1) .* rfft_h, n_fft, 1)
+        Y .= view(Y_ext, (firstindex(Y_ext, 1) + _filterlen(fi) - 1):(firstindex(Y_ext, 1) + fi.n_input - 1), :)
     end
     return Y
 end
@@ -226,7 +241,7 @@ function _fft_conv_columns_blocked!(Y::AbstractMatrix, fi::FFTConvFilterInstance
     groups = collect(Iterators.partition(eachindex(blocks), cld(length(blocks), n_tasks)))
     rfft_h = convert(Vector{Complex{T}}, fi.rfft_h)
     in_rows = firstindex(X, 1):lastindex(X, 1)
-    kept_rows = fi.n_filter:fi.n_input
+    kept_rows = _filterlen(fi):fi.n_input
     # Rows n_input+1:n_fft of X_ext stay zero.
     bufs = map(groups) do _
         X_ext = zeros(T, fi.n_fft, bs)

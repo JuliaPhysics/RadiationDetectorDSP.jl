@@ -11,6 +11,7 @@ using Adapt
 using RadiationDetectorDSP: bc_rdfilt, bc_rdfilt!
 
 import DSP
+using AbstractFFTs: rfft, brfft
 
 isdefined(@__MODULE__, :gen_test_waveforms) || include("test_utils.jl")
 
@@ -117,6 +118,11 @@ end
         # FFT length: at least the input length, only prime factors 2, 3 and 5
         @test fi.n_fft >= n_input && foldl((n, p) -> (while n % p == 0; n ÷= p; end; n), (2, 3, 5); init = fi.n_fft) == 1
         @test RadiationDetectorDSP.flt_output_length(fi) == n_input - n_filter + 1
+        # spectrum for the power-of-two FFT length used for inputs not on the CPU
+        n_pow2 = nextpow(2, n_input)
+        x = X[1]
+        y_pow2 = brfft(rfft(vcat(x, zeros(T, n_pow2 - n_input))) .* RadiationDetectorDSP._conv_spectrum(fi, n_pow2), n_pow2)[n_filter:n_input]
+        @test close(y_pow2, linconv(h, x), h, x, rtol)
         Y_ref = [linconv(h, x) for x in X]
         Y = @inferred(bc_rdfilt(fi, X))
         @test eltype(flatview(Y)) == T
