@@ -3,6 +3,7 @@
 isdefined(@__MODULE__, :gen_test_waveforms) || include("test_utils.jl")
 
 using JLArrays
+using LinearAlgebra: Transpose
 
 import GPUArraysCore
 
@@ -29,5 +30,20 @@ GPUArraysCore.allowscalar(false)
         Y_gpu = with_allowscalar(() -> bc_rdfilt(fi, inputs_gpu))
         @test flatview(Y_gpu) isa GPUArraysCore.AnyGPUArray
         @test Array(flatview(Y_gpu)) ≈ flatview(Y_cpu)
+    end
+end
+
+
+@testset "TrapezoidalChargeFilter GPU kernel with JLArrays" begin
+    # Groups of 8 and 4 signals, an incomplete last group, both memory layouts:
+    for (n_samples, n_waveforms) in ((40, 13), (1100, 5))
+        X = rand(Float32, n_samples, n_waveforms)
+        fi = fltinstance(TrapezoidalChargeFilter(7, 3, 5), SamplingInfo{Float32}(1:n_samples))
+        Y_cpu = flatview(bc_rdfilt(fi, ArrayOfSimilarVectors(X)))
+        for X_gpu in (JLArray(X), RadiationDetectorDSP._row_major(JLArray(X)))
+            Y_gpu = with_allowscalar(() -> flatview(bc_rdfilt(fi, ArrayOfSimilarVectors(X_gpu))))
+            @test (Y_gpu isa Transpose) == (X_gpu isa Transpose)
+            @test with_allowscalar(() -> Array(Y_gpu)) ≈ Y_cpu
+        end
     end
 end
