@@ -219,14 +219,24 @@ function _fft_conv_columns!(Y::AbstractMatrix, fi::FFTConvFilterInstance{T}, X::
         # Blocks of Y are written while other blocks of X are still to be read:
         _fft_conv_columns_blocked!(Y, fi, Base.unalias(Y, X))
     else
-        n_fft = _conv_fft_length(fi, X)
-        rfft_h = adapt(get_compute_unit(X), _conv_spectrum(fi, n_fft))
-        X_ext = fill!(similar(X, T, (n_fft, size(X, 2))), zero(T))
-        X_ext[firstindex(X_ext, 1):(firstindex(X_ext, 1) + fi.n_input - 1), :] .= X
-        Y_ext = brfft(rfft(X_ext, 1) .* rfft_h, n_fft, 1)
-        Y .= view(Y_ext, (firstindex(Y_ext, 1) + _filterlen(fi) - 1):(firstindex(Y_ext, 1) + fi.n_input - 1), :)
+        Y .= _fft_conv_ext(fi, X)
     end
     return Y
+end
+
+# Convolution of each column of X, for inputs that are not on the CPU. Returns a view of the kept
+# rows of the padded result. Every step is a full pass over the data, so only the padding rows
+# are zeroed and the spectrum is multiplied in place.
+function _fft_conv_ext(fi::FFTConvFilterInstance{T}, X::AbstractMatrix) where T
+    n_fft = _conv_fft_length(fi, X)
+    rfft_h = adapt(get_compute_unit(X), _conv_spectrum(fi, n_fft))
+    X_ext = similar(X, T, (n_fft, size(X, 2)))
+    fill!(view(X_ext, (fi.n_input + 1):n_fft, :), zero(T))
+    view(X_ext, 1:fi.n_input, :) .= X
+    F = rfft(X_ext, 1)
+    F .*= rfft_h
+    Y_ext = brfft(F, n_fft, 1)
+    view(Y_ext, _filterlen(fi):fi.n_input, :)
 end
 
 # On the CPU, the columns are transformed in blocks of at most `blocksize` columns, one task per

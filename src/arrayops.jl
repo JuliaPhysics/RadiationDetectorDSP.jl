@@ -103,11 +103,8 @@ function _arrayops_rdfilt(fi::DirectConvFilterInstance{T}, X::AbstractMatrix) wh
 end
 
 
-function _arrayops_rdfilt(fi::FFTConvFilterInstance{T}, X::AbstractMatrix) where {T}
-    n_fft = _conv_fft_length(fi, X)
-    rfft_h = adapt(get_compute_unit(X), _conv_spectrum(fi, n_fft))
-    X_ext = fill!(similar(X, T, (n_fft, size(X, 2))), zero(T))
-    view(X_ext, 1:fi.n_input, :) .= X
-    Y_ext = brfft(rfft(X_ext, 1) .* rfft_h, n_fft, 1)
-    Y_ext[_filterlen(fi):fi.n_input, :]
+# (`copy` of a view of rows takes a slow generic path on CuArrays)
+function _arrayops_rdfilt(fi::FFTConvFilterInstance, X::AbstractMatrix)
+    V = _fft_conv_ext(fi, X)
+    similar(V) .= V
 end
