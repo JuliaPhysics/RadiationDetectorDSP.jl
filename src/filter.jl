@@ -294,12 +294,115 @@ function _ka_bc_rdfilt!(
 
     adaptor = get_compute_unit(inputs)
     adapted_fi = adapt(adaptor, fi)
-    
+
     backend = _ka_get_backend(flatview(outputs))
+    if _use_staged_kernel(backend, fi, flatview(inputs))
+        return _ka_staged_bc_rdfilt!(backend, outputs, adapted_fi, inputs)
+    end
     kernel! = _ka_filter_kernel!(backend, _ka_threads(backend, flatview(outputs))...)
     kernel_ret = kernel!(outputs, inputs, adapted_fi, ndrange=size(inputs))
     _ka_synchronize(kernel!, kernel_ret)
     return outputs
+end
+
+
+# Whether `rdfilt!(x, fi, x)` filters `x` in place, i.e. the output has the length of the input
+# and sample `i` of the input is not read after output sample `i` is written:
+_rdfilt_in_place(::AbstractRadSigFilterInstance) = false
+
+# On GPUs, filters that run in place are applied by a kernel that holds whole signals in shared
+# memory (_ka_staged_filter_kernel!): loads and stores are contiguous in either memory layout,
+# while each work item filters one signal as on the CPU.
+_use_staged_kernel(::KernelAbstractions.CPU, fi::AbstractRadSigFilterInstance, X::AbstractArray) = false
+_use_staged_kernel(::_KA_Backend, fi::AbstractRadSigFilterInstance, X::AbstractArray) =
+    _rdfilt_in_place(fi) && X isa AbstractMatrix && size(X, 1) <= _ka_smem_smpls
+
+# Memory layout for filters that use the staged kernel on GPUs, row-major otherwise:
+_staged_memlayout(fi::AbstractRadSigFilterInstance, backend::_KA_Backend, A::AbstractArray{<:Number}) =
+    _use_staged_kernel(backend, fi, A) ? A : _row_major_on_gpu(backend, A)
+
+function _ka_staged_bc_rdfilt!(backend::_KA_Backend, outputs::ArrayOfSimilarVectors, fi::AbstractRadSigFilterInstance, inputs::ArrayOfSimilarVectors)
+    X, Y = flatview(inputs), flatview(outputs)
+    @argcheck size(X) == size(Y)
+    isempty(X) && return outputs
+    col_major_in, col_major_out = !(X isa Transpose), !(Y isa Transpose)
+    # Filtering is one signal per work item, so as many signals per work group as fit:
+    n_grp = _ka_smem_group(size(X, 1), col_major_in && col_major_out)
+    kernel! = _ka_staged_filter_kernel!(backend, 256)
+    kernel_ret = kernel!(Y, X, fi, n_grp, col_major_in, col_major_out, ndrange = 256 * cld(size(X, 2), n_grp))
+    _ka_synchronize(kernel!, kernel_ret)
+    return outputs
+end
+
+@kernel function _ka_staged_filter_kernel!(
+    Y::AbstractMatrix{<:Real}, @Const(X::AbstractMatrix{<:Real}), @Const(fi::AbstractRadSigFilterInstance),
+    n_grp::Int, col_major_in::Bool, col_major_out::Bool
+)
+    buf = @localmem eltype(Y) (8192,)
+    n = size(X, 1)
+    s0 = (@index(Group, Linear) - 1) * n_grp
+    n_sig = min(n_grp, size(X, 2) - s0)
+
+    _ka_load_signals!(buf, X, @index(Local, Linear) - 1, s0, n_sig, n_grp, col_major_in)
+    @synchronize
+
+    s = @index(Local, Linear) - 1
+    if s < n_sig
+        signal = view(buf, (s * n + 1):(s * n + n))
+        rdfilt!(signal, fi, signal)
+    end
+    @synchronize
+
+    _ka_store_signals!(Y, buf, @index(Local, Linear) - 1, s0, n_sig, n_grp, col_major_out)
+end
+
+
+# GPU kernels that hold whole signals in shared memory use work groups of 256 work items and
+# n_grp signals of n <= 8192 / n_grp samples in a buffer of 8192 elements, sample i of signal s
+# of the group (both 0-based) at element s * n + i + 1. With row-major data, n_grp must be a
+# power of two.
+const _ka_smem_smpls = 8192
+
+_ka_smem_group(n::Integer, col_major::Bool) = col_major ? min(256, _ka_smem_smpls ÷ n) : min(256, prevpow(2, _ka_smem_smpls ÷ n))
+
+# Loads signals s0+1:s0+n_sig of X into buf, by work item tt (0-based). All loads of a work item
+# are issued before its first store, to keep enough memory accesses in flight.
+@inline function _ka_load_signals!(buf, X, tt, s0, n_sig, n_grp, col_major)
+    T = eltype(buf)
+    n = size(X, 1)
+    if col_major
+        # The signals are consecutive in linear indexing order:
+        n_total = n_sig * n
+        offs = s0 * n
+        Base.Cartesian.@nexprs 32 k -> (v_k = tt + 256 * (k - 1) < n_total ? T(@inbounds X[offs + tt + 256 * (k - 1) + 1]) : zero(T))
+        Base.Cartesian.@nexprs 32 k -> (tt + 256 * (k - 1) < n_total && (@inbounds buf[tt + 256 * (k - 1) + 1] = v_k; true))
+    else
+        # n_grp consecutive work items read the signals at the same sample:
+        s = tt & (n_grp - 1)
+        i_1 = tt ÷ n_grp
+        i_step = 256 ÷ n_grp
+        Base.Cartesian.@nexprs 32 k -> (v_k = (s < n_sig && i_1 + i_step * (k - 1) < n) ? T(@inbounds X[i_1 + i_step * (k - 1) + 1, s0 + s + 1]) : zero(T))
+        Base.Cartesian.@nexprs 32 k -> ((s < n_sig && i_1 + i_step * (k - 1) < n) && (@inbounds buf[s * n + i_1 + i_step * (k - 1) + 1] = v_k; true))
+    end
+    return nothing
+end
+
+# Stores buf to signals s0+1:s0+n_sig of Y, the inverse of _ka_load_signals!.
+@inline function _ka_store_signals!(Y, buf, tt, s0, n_sig, n_grp, col_major)
+    n = size(Y, 1)
+    if col_major
+        for s in 0:(n_sig - 1), i in tt:256:(n - 1)
+            @inbounds Y[i + 1, s0 + s + 1] = buf[s * n + i + 1]
+        end
+    else
+        s = tt & (n_grp - 1)
+        if s < n_sig
+            for i in (tt ÷ n_grp):(256 ÷ n_grp):(n - 1)
+                @inbounds Y[i + 1, s0 + s + 1] = buf[s * n + i + 1]
+            end
+        end
+    end
+    return nothing
 end
 
 

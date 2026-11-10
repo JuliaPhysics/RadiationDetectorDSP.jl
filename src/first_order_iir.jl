@@ -103,7 +103,9 @@ X::AbstractVector{U}) where {T<:Real, U<:Real}
 end
 
 
-adapt_memlayout(::FirstOrderIIRInstance, backend::_KA_Backend, A::AbstractArray{<:Number}) = _row_major_on_gpu(backend, A)
+_rdfilt_in_place(::FirstOrderIIRInstance) = true
+
+adapt_memlayout(fi::FirstOrderIIRInstance, backend::_KA_Backend, A::AbstractArray{<:Number}) = _staged_memlayout(fi, backend, A)
 
 function bc_rdfilt!(
     outputs::ArrayOfSimilarVectors{<:Number},

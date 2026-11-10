@@ -147,7 +147,8 @@ function _trapezoid_bc_rdfilt!(backend::_KA_Backend, outputs, fi, inputs)
         @argcheck axes(X, 2) == axes(Y, 2)
         @argcheck size(X, 1) == fi.n_input && size(Y, 1) == flt_output_length(fi)
         isempty(X) && return outputs
-        n_grp = _trapezoid_kernel_group(fi)
+        # One warp per signal for the prefix sums, a power of two for both memory layouts:
+        n_grp = min(8, _ka_smem_group(fi.n_input, false))
         kernel! = _trapezoid_kernel!(backend, 256)
         kernel_ret = kernel!(Y, X, fi.navg, fi.ngap, fi.navg2, n_grp, !(X isa Transpose), !(Y isa Transpose),
                              ndrange = 256 * cld(size(X, 2), n_grp))
@@ -158,9 +159,7 @@ function _trapezoid_bc_rdfilt!(backend::_KA_Backend, outputs, fi, inputs)
     end
 end
 
-# Signals per work group of the GPU kernel: a power of two, at most eight.
-_trapezoid_kernel_group(fi::TrapezoidalChargeFilterInstance) = min(8, prevpow(2, 8192 ÷ fi.n_input))
-_trapezoid_kernel_fits(fi::TrapezoidalChargeFilterInstance) = fi.n_input <= 8192
+_trapezoid_kernel_fits(fi::TrapezoidalChargeFilterInstance) = fi.n_input <= _ka_smem_smpls
 
 # Lane of the work item in its warp, and the samples of the warp's signal it sums up (positions
 # in buf). The chunk length is odd, which avoids shared memory bank conflicts.
@@ -173,7 +172,7 @@ _trapezoid_kernel_fits(fi::TrapezoidalChargeFilterInstance) = fi.n_input <= 8192
     return w, lane, first_n, last_n
 end
 
-# Each work group of 256 work items loads n_grp signals into shared memory, computes their
+# Each work group loads n_grp signals into shared memory (see _ka_load_signals!), computes their
 # prefix sums S with one warp per signal, and then all outputs in parallel as
 # y[j] = (S[i] - S[i - navg]) / navg - (S[i - navg - ngap] - S[i - navg - ngap - navg2]) / navg2,
 # with i = j + navg + ngap + navg2 - 1 and S[0] = 0. The sums are taken over the signal minus its
@@ -196,22 +195,7 @@ end
     s0 = (group - 1) * n_grp
     n_sig = min(n_grp, size(X, 2) - s0)
 
-    # All loads of a work item are issued before its first store, to keep enough memory
-    # accesses in flight.
-    if col_major_in
-        # The signals of the group are consecutive in linear indexing order:
-        n_total = n_sig * n_in
-        offs = s0 * n_in
-        Base.Cartesian.@nexprs 32 k -> (v_k = tt + 256 * (k - 1) < n_total ? T(@inbounds X[offs + tt + 256 * (k - 1) + 1]) : zero(T))
-        Base.Cartesian.@nexprs 32 k -> (tt + 256 * (k - 1) < n_total && (@inbounds buf[tt + 256 * (k - 1) + 1] = v_k; true))
-    else
-        # n_grp consecutive work items read the signals at the same sample:
-        s = tt & (n_grp - 1)
-        n_1 = tt ÷ n_grp
-        n_step = 256 ÷ n_grp
-        Base.Cartesian.@nexprs 32 k -> (v_k = (s < n_sig && n_1 + n_step * (k - 1) < n_in) ? T(@inbounds X[n_1 + n_step * (k - 1) + 1, s0 + s + 1]) : zero(T))
-        Base.Cartesian.@nexprs 32 k -> ((s < n_sig && n_1 + n_step * (k - 1) < n_in) && (@inbounds buf[s * n_in + n_1 + n_step * (k - 1) + 1] = v_k; true))
-    end
+    _ka_load_signals!(buf, X, tt, s0, n_sig, n_grp, col_major_in)
     @synchronize
 
     # Prefix sums, one chunk of samples per lane:

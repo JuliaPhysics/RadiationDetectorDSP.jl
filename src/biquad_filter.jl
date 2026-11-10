@@ -85,7 +85,9 @@ end
 end
 
 
-adapt_memlayout(::BiquadFilterInstance, backend::_KA_Backend, A::AbstractArray{<:Number}) = _row_major_on_gpu(backend, A)
+_rdfilt_in_place(::BiquadFilterInstance) = true
+
+adapt_memlayout(fi::BiquadFilterInstance, backend::_KA_Backend, A::AbstractArray{<:Number}) = _staged_memlayout(fi, backend, A)
 
 function bc_rdfilt!(
     outputs::ArrayOfSimilarVectors{<:Number},
