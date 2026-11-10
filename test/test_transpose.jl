@@ -29,7 +29,7 @@ GPUArraysCore.allowscalar(false)
         @test Array(A_gpu) == A
 
         # Tile-size edge cases of the KA transpose kernel:
-        for sz in ((16, 16), (17, 33), (1, 40))
+        for sz in ((32, 32), (33, 65), (1, 40), (70, 3))
             B = rand(Float32, sz...)
             @test Array(with_allowscalar(() -> _nonlazy_transpose(JLArray(B)))) == transpose(B)
         end
