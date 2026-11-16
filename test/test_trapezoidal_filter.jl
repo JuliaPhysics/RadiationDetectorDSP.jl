@@ -79,4 +79,6 @@ isdefined(@__MODULE__, :gen_test_waveforms) || include("test_utils.jl")
     @test @inferred(broadcast(uflt, wfs_x)) ≈ wfs_y_ref broken = ka_cpu_broken
     #@test typeof(broadcast(fi, wfs_x)) == typeof(wfs_y_ref)
     @test typeof(broadcast(uflt, wfs_x)) == typeof(wfs_y_ref) broken = ka_cpu_broken
+    @test typeof(wfs_x .|> uflt) == typeof(wfs_y_ref) broken = ka_cpu_broken
+    @test (wfs_x .|> uflt) ≈ wfs_y_ref broken = ka_cpu_broken
 end
