@@ -69,6 +69,10 @@ function Base.Broadcast.broadcasted(flt::AbstractRadSigFilter, inputs)
     bc_rdfilt(fi, inputs)
 end
 
+# `inputs .|> flt` lowers to `broadcasted(|>, inputs, flt)`, route it to `flt.(inputs)`:
+Base.Broadcast.broadcasted(::typeof(|>), inputs::Union{AbstractArray,Base.Broadcast.Broadcasted}, flt::AbstractRadSigFilter) =
+    Base.Broadcast.broadcasted(flt, Base.materialize(inputs))
+
 
 
 """
